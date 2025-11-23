@@ -188,10 +188,6 @@ for model_name, model in models.items():
     print(classif_report)
     print("\n" + "="*60 + "\n")
 
-!pip install pyngrok
-
-!pip install streamlit pyngrok scikit-learn pandas joblib
-
 from pyngrok import ngrok
 ngrok.set_auth_token("ngrok config add-authtoken 35pMGDkRADs7LceBK5Nftvvfo9G_WWEW9NAXCHLj4397WuPL")
 
@@ -291,70 +287,6 @@ ngrok.set_auth_token("ngrok config add-authtoken 35pMGDkRADs7LceBK5Nftvvfo9G_WWE
 # st.markdown("---")
 # st.write("Built with Streamlit · Suitable for Google Colab 🚀")
 #
-
-from pyngrok import ngrok
-ngrok.set_auth_token("35pMGDkRADs7LceBK5Nftvvfo9G_WWEW9NAXCHLj4397WuPL")
-
-import subprocess
-
-# Kill previous tunnels if any
-ngrok.kill()
-
-# Start a new tunnel
-public_url = ngrok.connect(8501)
-print("🌐 Public URL:", public_url)
-
-# Start Streamlit app
-subprocess.Popen(["streamlit", "run", "app.py"])
-
-curl https://loca.lt/mytunnelpassword
-
-!npm install -g localtunnel
-!streamlit run app.py & sleep 5
-!lt --port 8501 --print-requests
-
-# ============================
-# 🚀 COLAB STREAMLIT AUTO-LAUNCHER
-# ============================
-
-import subprocess, time, re, random
-
-# Install LocalTunnel
-print("Installing localtunnel...")
-!npm install -g localtunnel > /dev/null
-
-# Pick a free random port between 8501 and 8999
-port = random.randint(8501, 8999)
-print(f"Using port: {port}")
-
-# Start Streamlit in the background
-print("Starting Streamlit app...")
-streamlit_cmd = f"streamlit run app.py --server.port {port} --server.address 0.0.0.0"
-subprocess.Popen(streamlit_cmd.split(), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-
-# Wait for Streamlit to boot
-time.sleep(5)
-
-# Start localtunnel
-print("Starting LocalTunnel...")
-lt_cmd = f"lt --port {port}"
-lt_output = subprocess.Popen(lt_cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-# Read output to find the public URL
-public_url = None
-for _ in range(20):
-    line = lt_output.stdout.readline().decode()
-    if "https://" in line:
-        public_url = line.strip()
-        break
-
-# Display result
-if public_url:
-    print("\n🎉 Your Streamlit app is live!")
-    print("👉 Public URL:", public_url)
-else:
-    print("\n❌ LocalTunnel failed to generate a URL.")
-    print("Try running just: !lt --port", port)
 
 import streamlit as st
 import pandas as pd
