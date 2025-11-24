@@ -26,47 +26,107 @@ with st.sidebar:
 # ----------------------
 # Minimal CSS (glass + readability)
 # ----------------------
-# ----------------------
-# SIDEBAR FIRST ✔
-# ----------------------
+# --------------------------------
+# CSS (must be BEFORE theme logic)
+# --------------------------------
+base_css = """
+<style>
+/* Background gradient */
+body {
+    background: linear-gradient(135deg, rgba(31,58,147,1), rgba(110,43,168,1), rgba(245,69,145,1));
+    background-attachment: fixed;
+}
+
+/* Sidebar stays white */
+section[data-testid="stSidebar"] {
+    background-color: rgba(255,255,255,0.97) !important;
+    color:#111 !important;
+}
+
+/* Glass panels */
+.glass-panel, .glass-panel-2 {
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.65);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0,0,0,0.12);
+    color:#111 !important;
+}
+
+/* Text formatting */
+html, body, div, p, span, label {
+    color:#111 !important;
+    font-weight:700 !important;
+}
+
+h1, h2, h3, h4 {
+    color:#111 !important;
+    font-weight:800 !important;
+}
+
+</style>
+"""
+
+# -------------------------
+# SINGLE SIDEBAR (Only One)
+# -------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
-    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
-    st.markdown("---")
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"])
+
+    mode = st.radio(
+        "🌗 Theme Mode",
+        ["Light Mode", "Dark Mode"],
+        key="theme_select"
+    )
+
     st.markdown("---")
 
-# ----------------------
-# NOW APPLY CSS ✔
-# ----------------------
-# Base light CSS
+    page = st.radio(
+        "📄 Navigate",
+        ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"],
+        key="nav_select"
+    )
+
+    st.markdown("---")
+    st.write("Use sidebar to switch pages or theme.")
+
+
+
+# -------------------------
+# APPLY LIGHT MODE
+# -------------------------
 st.markdown(base_css, unsafe_allow_html=True)
 
-# Dark Mode override CSS
+# -------------------------
+# APPLY DARK MODE OVERRIDE
+# -------------------------
 if mode == "Dark Mode":
-    dark_css = """
+    st.markdown("""
     <style>
         body {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1c1c1c 40%, #2e2e2e 100%) !important;
+            background: linear-gradient(135deg, #0d0d0d, #1c1c1c, #333333) !important;
         }
         .glass-panel, .glass-panel-2 {
             background: rgba(0,0,0,0.55) !important;
             color: #fefefe !important;
         }
-        h1, h2, h3, h4, h5, p, label, div {
-            color: #fefefe !important;
+        html, body, div, p, span, label {
+            color:#fefefe !important;
+        }
+        h1,h2,h3,h4 {
+            color:#fefefe !important;
         }
         input, select, textarea {
-            background: rgba(255,255,255,0.15) !important;
-            color: #fff !important;
+            background: rgba(255,255,255,0.12) !important;
+            color:#fff !important;
         }
         .stButton>button {
             background: rgba(255,255,255,0.2) !important;
-            color: #fff !important;
+            color:#fff !important;
         }
     </style>
-    """
-    st.markdown(dark_css, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # ----------------------
 # Emoji icons & drug info
