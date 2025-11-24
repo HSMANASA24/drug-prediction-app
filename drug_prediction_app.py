@@ -12,6 +12,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -67,7 +69,9 @@ def login_user(username, password):
 
 def require_login():
     st.markdown('<div class="glass-panel" style="max-width:600px; margin:auto;">', unsafe_allow_html=True)
-    st.title("🔒 Admin Login")
+    st.title("🛡️ Smart Drug Shield – Drug Prescription Classifier")
+# Added project title
+st.header("🔒 Admin Login")
 
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
@@ -117,12 +121,12 @@ if theme_choice == "Dark Mode":
 # =====================================================
 def load_sample_df():
     return pd.DataFrame([
-        [23, 'F', 'HIGH', 'HIGH', 0.79, 0.03, 'drugY'],
-        [47, 'M', 'LOW', 'HIGH', 0.73, 0.05, 'drugC'],
-        [28, 'F', 'NORMAL', 'HIGH', 0.56, 0.07, 'drugX'],
-        [61, 'F', 'LOW', 'HIGH', 0.55, 0.03, 'drugY'],
-        [45, 'M', 'NORMAL', 'NORMAL', 0.70, 0.05, 'drugA'],
-    ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
+        [23, 'F', 'HIGH', 'HIGH', 0.79, 0.03, 'Amlodipine-Atorvastatin'],
+        [47, 'M', 'LOW', 'HIGH', 0.73, 0.05, 'Losartan'],
+        [28, 'F', 'NORMAL', 'HIGH', 0.56, 0.07, 'Atorvastatin'],
+        [61, 'F', 'LOW', 'HIGH', 0.55, 0.03, 'Amlodipine-Atorvastatin'],
+        [45, 'M', 'NORMAL', 'NORMAL', 0.70, 0.05, 'Atenolol'],
+    ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug']))
 
 @st.cache_resource
 def train_model(df, model_name):
@@ -139,7 +143,9 @@ def train_model(df, model_name):
         "KNN": KNeighborsClassifier(),
         "Decision Tree": DecisionTreeClassifier(),
         "Random Forest": RandomForestClassifier(),
-        "SVM": SVC(probability=True)
+        "SVM": SVC(probability=True),
+        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
+        "LightGBM": LGBMClassifier()
     }
 
     pipe = Pipeline([("pre", pre), ("clf", models[model_name])])
@@ -153,7 +159,7 @@ if page == "Predictor":
     st.markdown('<div class="glass-panel"><h2>Single Prediction</h2></div>', unsafe_allow_html=True)
 
     df_train = load_sample_df()
-    model_name = st.selectbox("Select Model", ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM"])
+    model_name = st.selectbox("Select Model", ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM", "XGBoost", "LightGBM"])
 
     model = train_model(df_train, model_name)
 
@@ -170,22 +176,67 @@ if page == "Predictor":
 
     if st.button("Predict"):
         input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        pred = model.predict(input_df)[0]
-        st.success(f"Predicted Drug: {pred}")
+        proba = model.predict_proba(input_df)[0]
+pred = model.predict(input_df)[0]
+        confidence = max(proba) * 100
+st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
+
+# Simple rule-based explanation
+explanation = f"The model predicted **{pred}** because:
+- Age: {age}
+- Sex: {sex}
+- BP: {bp}
+- Cholesterol: {chol}
+- Sodium: {na}
+- Potassium: {k}"
+st.info(explanation {pred}")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------
 # Drug details
 # ---------------------------
 drug_details = {
-    "drugA": {
-        "name": "Drug A",
-        "use": "Used for normal BP and normal cholesterol.",
-        "mechanism": "Supports circulatory health.",
-        "side_effects": ["Headache", "Dry mouth", "Dizziness"],
-        "precautions": "Avoid alcohol; stay hydrated.",
-        "dosage": "1 tablet daily."
+    "Atenolol": {
+        "name": "Atenolol",
+        "use": "Used for mild blood pressure control.",
+        "mechanism": "Beta-blocker that reduces heart rate and BP.",
+        "side_effects": ["Fatigue", "Cold extremities", "Dizziness"],
+        "precautions": "Not recommended for asthma patients.",
+        "dosage": "50 mg once daily."
     },
+    "Losartan": {
+        "name": "Losartan",
+        "use": "Used for high blood pressure.",
+        "mechanism": "ARB that relaxes blood vessels.",
+        "side_effects": ["Low BP", "Increased potassium", "Fatigue"],
+        "precautions": "Avoid in pregnancy.",
+        "dosage": "25–50 mg per day."
+    },
+    "ORS-K": {
+        "name": "ORS-K",
+        "use": "Corrects sodium–potassium imbalance.",
+        "mechanism": "Replenishes electrolytes and restores hydration.",
+        "side_effects": ["Nausea", "Stomach upset"],
+        "precautions": "Monitor Na/K levels.",
+        "dosage": "As required during dehydration or imbalance."
+    },
+    "Atorvastatin": {
+        "name": "Atorvastatin",
+        "use": "Used for high cholesterol.",
+        "mechanism": "Reduces cholesterol synthesis in the liver.",
+        "side_effects": ["Muscle pain", "Weakness", "Liver enzyme changes"],
+        "precautions": "Avoid high-fat diet; monitor liver function.",
+        "dosage": "10–20 mg in the evening."
+    },
+    "Amlodipine-Atorvastatin": {
+        "name": "Amlodipine-Atorvastatin",
+        "use": "Used for high BP and high cholesterol together.",
+        "mechanism": "Combines BP-lowering and cholesterol-lowering action.",
+        "side_effects": ["Muscle fatigue", "Dizziness", "Edema"],
+        "precautions": "Regular BP and cholesterol monitoring.",
+        "dosage": "1 tablet daily."
+    }
+},
     "drugB": {
         "name": "Drug B",
         "use": "For high blood pressure.",
