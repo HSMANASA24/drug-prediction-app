@@ -118,16 +118,14 @@ if theme_choice == "Dark Mode":
     st.markdown(DARK_CSS, unsafe_allow_html=True)
 
 # =====================================================
-# Data loading and mapping (using your uploaded dataset)
+# Load dataset directly from GitHub
 # =====================================================
-DATA_PATH = "/mnt/data/Drug.csv"   # <-- your dataset path (from your upload)
-
 @st.cache_data
-def load_and_prepare(path=DATA_PATH):
-    df = pd.read_csv(path)
-    # Clean column names if necessary
-    df.columns = [c.strip() for c in df.columns]
-    # Map dataset drug labels to real drug names (Option B)
+def load_and_prepare():
+    url = "https://raw.githubusercontent.com/HSMANASA24/drug-prediction-app/c476f30acf26ddc14b6b4a7eb796786c23a23edd/Drug.csv"
+    df = pd.read_csv(url)
+
+    # Optional: map dataset drug codes to readable names
     mapping = {
         "drugA": "Amlodipine",
         "drugB": "Atenolol",
@@ -135,9 +133,10 @@ def load_and_prepare(path=DATA_PATH):
         "drugX": "Atorvastatin",
         "drugY": "Losartan"
     }
-    # If some rows have already real names, map will ignore them (we use .map then fillna)
     df["Drug"] = df["Drug"].map(mapping).fillna(df["Drug"])
+
     return df
+
 
 # Load dataset
 df_full = load_and_prepare()
