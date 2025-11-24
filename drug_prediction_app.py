@@ -142,7 +142,9 @@ def load_and_prepare():
 df_full = load_and_prepare()
 
 # Show small dataset info
-st.sidebar.markdown(f"**Dataset:** {DATA_PATH}")
+st.sidebar.markdown("📄 **Dataset Source:** GitHub (Drug.csv)")
+
+
 st.sidebar.markdown(f"Rows: {df_full.shape[0]}, Columns: {df_full.shape[1]}")
 st.sidebar.markdown("---")
 
