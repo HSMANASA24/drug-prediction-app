@@ -73,20 +73,13 @@ st.markdown(BASE_CSS, unsafe_allow_html=True)
 # User Authentication (Updated)
 # -----------------------------
 
-_SALT = "a9f5b3c7"
-
-def hash_password(password: str) -> str:
-    import hashlib
-    return hashlib.sha256((_SALT + password).encode()).hexdigest()
 
 USERS = {
-    "admin": "a46a1545ebbb0d9b2b77e8cb365615a0438af8b12421a29bf555f7930df4d08b",
-    "manasa": "3f01e5e3a73d0b04804048364a2b0d1e74e76dcacf84049c62fbe35db8ceac85",
-    "doctor": "6f75069c3b05233729a9e8f0e247f8739f2990fa9c4f84cf9d115bad8fbfe3db",
-    "student": "1f7a1bbfe520c4dc33dcbf63d6fa770b5b1ef19ce6c82383bf660516f0ae274d"
+    "admin": "Admin@123",
+    "manasa": "Manasa@2005",
+    "doctor": "Doctor@123",
+    "student": "Student@123"
 }
-
-
 # -------------------------------------------------
 # Authentication (simple username + password)
 # -------------------------------------------------
@@ -115,9 +108,8 @@ def login_page():
         st.experimental_rerun()
 
     if login_btn:
-        hashed = hash_password(pwd)
-
-        if user in USERS and secrets.compare_digest(USERS[user], hashed):
+        # Simple login – no hashing
+        if user in USERS and USERS[user] == pwd:
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
             st.experimental_rerun()
@@ -126,6 +118,7 @@ def login_page():
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
+
 
 # -----------------------------------
 # Require login before showing pages
