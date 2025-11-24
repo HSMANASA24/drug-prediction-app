@@ -14,10 +14,17 @@ st.set_page_config(
     layout="centered"
 )
 
-
+# --------------------------------------------------------------
+# Sidebar Settings (DEFINE MODE EARLY!)
+# --------------------------------------------------------------
+with st.sidebar:
+    st.header("⚙️ Settings")
+    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
+    st.markdown("---")
+    st.write("Customize the look and feel of the app.")
 
 # --------------------------------------------------------------
-# Custom CSS Theme Enhancements
+# Base CSS (Common Light Theme Enhancements)
 # --------------------------------------------------------------
 st.markdown("""
     <style>
@@ -59,15 +66,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
-# Apply theme based on selection
+# --------------------------------------------------------------
+# DARK MODE CSS (Applied AFTER mode is known)
+# --------------------------------------------------------------
 if mode == "Dark Mode":
     dark_css = """
     <style>
-        body {
-            background-color: #1e1e1e;
-            color: white;
-        }
+        body { background-color: #1e1e1e; color: white; }
         .css-18e3th9, .css-1pahdxg {
             background-color: #1e1e1e !important;
             color: white !important;
@@ -75,22 +80,13 @@ if mode == "Dark Mode":
         .stButton>button {
             background-color: #444444 !important;
             color: white !important;
-            border-radius: 8px;
         }
         .stButton>button:hover {
             background-color: #555555 !important;
         }
-        .css-10trblm {
-            color: #4CAF50 !important;
-        }
-        .stSuccess {
-            background-color: #2d2d2d !important;
-            color: white !important;
-        }
-        .stTextInput>div>div>input {
-            background-color: #2d2d2d !important;
-            color: white !important;
-        }
+        .css-10trblm { color: #4CAF50 !important; }
+        .stSuccess { background-color: #2d2d2d !important; color: white !important; }
+        .stTextInput>div>div>input,
         .stSelectbox>div>div {
             background-color: #2d2d2d !important;
             color: white !important;
@@ -101,14 +97,10 @@ if mode == "Dark Mode":
 else:
     light_css = """
     <style>
-        body {
-            background-color: white;
-            color: black;
-        }
+        body { background-color: white; color: black; }
     </style>
     """
     st.markdown(light_css, unsafe_allow_html=True)
-
 
 # --------------------------------------------------------------
 # App Header
@@ -117,14 +109,6 @@ st.title("💊 Drug Prescription Classifier")
 st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", unsafe_allow_html=True)
 
 st.write("Upload your dataset or use the built-in sample data to predict drug types.")
-
-with st.sidebar:
-    st.header("⚙️ Settings")
-    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
-    st.markdown("---")
-    st.write("Customize the look and feel of the app.")
-
-
 
 # --------------------------------------------------------------
 # Sample Dataset
@@ -138,7 +122,6 @@ def load_sample_df():
         [61, 'F', 'LOW', 'HIGH', 0.559294, 0.030998, 'drugY'],
         [45, 'M', 'NORMAL', 'NORMAL', 0.700000, 0.050000, 'drugA']
     ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
-
 
 # --------------------------------------------------------------
 # Model Training Function
@@ -194,7 +177,6 @@ with col2:
     cholesterol = st.selectbox("Cholesterol", ["HIGH", "NORMAL"])
     na = st.number_input("Sodium (Na)", value=0.70, format="%.4f")
     k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
-
 
 # --------------------------------------------------------------
 # Prediction Button
