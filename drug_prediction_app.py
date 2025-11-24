@@ -175,7 +175,14 @@ if page == "Predictor":
         st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
 
         explanation = (
-            "The model predicted **" + str(pred) + "** because:
+            "The model predicted **" + str(pred) + "** because:\n"
+            "- Age: " + str(age) + "\n"
+            "- Sex: " + str(sex) + "\n"
+            "- BP: " + str(bp) + "\n"
+            "- Cholesterol: " + str(chol) + "\n"
+            "- Sodium (Na): " + str(na) + "\n"
+            "- Potassium (K): " + str(k) + "\n"
+        ) + "** because:
 "
             "- Age: " + str(age) + "
 "
