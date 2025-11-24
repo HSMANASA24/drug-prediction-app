@@ -69,9 +69,7 @@ def login_user(username, password):
 
 def require_login():
     st.markdown('<div class="glass-panel" style="max-width:600px; margin:auto;">', unsafe_allow_html=True)
-    st.title("🛡️ Smart Drug Shield – Drug Prescription Classifier")
-# Added project title
-st.header("🔒 Admin Login")
+    st.title("🔒 Admin Login")
 
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
@@ -93,12 +91,7 @@ st.header("🔒 Admin Login")
         st.info("Reset password manually in the USERS dictionary.")
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-# BLOCK APP UNTIL LOGIN
-if not st.session_state["authenticated"]:
-    st.markdown(base_css, unsafe_allow_html=True)
-    require_login()
-    st.stop()
+    st.stop()()
 
 # =====================================================
 # Sidebar
@@ -199,7 +192,7 @@ drug_details = {
     "Atenolol": {
         "name": "Atenolol",
         "use": "Used for mild blood pressure control.",
-        "mechanism": "Beta-blocker that reduces heart rate and BP.",
+        "mechanism": "Beta‑blocker that reduces heart rate and BP.",
         "side_effects": ["Fatigue", "Cold extremities", "Dizziness"],
         "precautions": "Not recommended for asthma patients.",
         "dosage": "50 mg once daily."
