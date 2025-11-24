@@ -291,18 +291,24 @@ def require_login():
     st.title("🔒 Admin Login")
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
+
+    # Row with Login + Forgot Password
     col1, col2 = st.columns([1,1])
     with col1:
-        if st.button("Login"):
-            if login_user(user, pwd):
-                st.session_state['authenticated'] = True
-                st.session_state['username'] = user
-                st.experimental_rerun()
-            else:
-                st.error("Invalid username or password.")
+        login_clicked = st.button("Login", key="login_btn")
     with col2:
-        if st.button("Forgot Password"):
-            st.info("If you forgot the admin password, update the USERS dict in the code or reset on the server.")
+        forgot_clicked = st.button("Forgot Password", key="forgot_btn")
+
+    if login_clicked:
+        if login_user(user, pwd):
+            st.session_state['authenticated'] = True
+            st.session_state['username'] = user
+            st.experimental_rerun()
+        else:
+            st.error("Invalid username or password.")
+
+    if forgot_clicked:
+        st.info("If you forgot the admin password, reset it inside the USERS dictionary in the code.")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
