@@ -182,35 +182,8 @@ if page == "Predictor":
             "- Cholesterol: " + str(chol) + "\n"
             "- Sodium (Na): " + str(na) + "\n"
             "- Potassium (K): " + str(k) + "\n"
-        ) + "** because:
-"
-            "- Age: " + str(age) + "
-"
-            "- Sex: " + str(sex) + "
-"
-            "- BP: " + str(bp) + "
-"
-            "- Cholesterol: " + str(chol) + "
-"
-            "- Sodium (Na): " + str(na) + "
-"
-            "- Potassium (K): " + str(k) + "
-"
-        ) + "** because:
-"
-            "- Age: " + str(age) + "
-"
-            "- Sex: " + str(sex) + "
-"
-            "- BP: " + str(bp) + "
-"
-            "- Cholesterol: " + str(chol) + "
-"
-            "- Sodium (Na): " + str(na) + "
-"
-            "- Potassium (K): " + str(k)
         )
-        st.info(explanation)(explanation)(explanation)
+        st.info(explanation)(explanation)(explanation)(explanation)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
