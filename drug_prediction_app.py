@@ -119,7 +119,7 @@ def load_sample_df():
         [28, 'F', 'NORMAL', 'HIGH', 0.56, 0.07, 'Atorvastatin'],
         [61, 'F', 'LOW', 'HIGH', 0.55, 0.03, 'Amlodipine-Atorvastatin'],
         [45, 'M', 'NORMAL', 'NORMAL', 0.70, 0.05, 'Atenolol']
-    ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug']))
+    ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
 
 @st.cache_resource
 def train_model(df, model_name):
