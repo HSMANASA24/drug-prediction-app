@@ -32,80 +32,92 @@ with st.sidebar:
 base_css = """
 <style>
 
+/* Background gradient */
 body {
   background: linear-gradient(135deg, rgba(31,58,147,1) 0%, rgba(110,43,168,1) 40%, rgba(245,69,145,1) 100%);
   background-attachment: fixed;
 }
 
-/* Keep sidebar light */
+/* Sidebar stays light */
 section[data-testid="stSidebar"] {
-  background-color: rgba(255,255,255,0.94) !important;
+  background-color: rgba(255,255,255,0.97) !important;
   color: #111 !important;
 }
 
-/* Glass card */
+/* GLASS PANEL */
 .glass-panel {
   backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  background: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.12);
   border-radius: 18px;
-  padding: 18px;
-  border: 1px solid rgba(255,255,255,0.30);
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.28);
   box-shadow: 0 10px 40px rgba(0,0,0,0.40);
-  margin-bottom: 22px;
+  margin-bottom: 25px;
 }
 
-/* Slightly darker glass */
+/* DARKER GLASS */
 .glass-panel-2 {
   backdrop-filter: blur(8px);
-  background: rgba(0,0,0,0.20);
+  background: rgba(0,0,0,0.25);
   border-radius: 14px;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid rgba(255,255,255,0.18);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
-/* Inputs */
+/* HIGH-VISIBILITY TEXT */
+html, body, div, p, span, label {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* HEADINGS */
+h1, h2, h3, h4, h5 {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Input boxes */
 input, textarea, select {
-  background: rgba(255,255,255,0.15) !important;
-  color: white !important;
-  border-radius: 8px !important;
+  background: rgba(255,255,255,0.18) !important;
+  color: #ffffff !important;
   border: 1px solid rgba(255,255,255,0.25) !important;
+  font-weight: 600 !important;
 }
 
 /* File uploader */
 div[data-testid="stFileUploader"] {
-  background: rgba(255,255,255,0.12) !important;
+  background: rgba(255,255,255,0.15) !important;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.20);
+  border: 1px solid rgba(255,255,255,0.25);
 }
 
-/* Buttons */
+/* Buttons - brighter text */
 .stButton>button {
-  background: rgba(255,255,255,0.10) !important;
-  color: #fff !important;
-  border: 1px solid rgba(255,255,255,0.20);
-  padding: 10px 18px;
+  background: rgba(255,255,255,0.18) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.22);
+  padding: 10px 20px;
   border-radius: 12px;
-  box-shadow: 0 6px 25px rgba(0,0,0,0.35);
+  font-weight: 600 !important;
 }
+
+/* hover */
 .stButton>button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.55);
+  background: rgba(255,255,255,0.30) !important;
+  color: #000000 !important;
 }
 
-h1, h2, h3, h4 {
-  color: #eaf5ff !important;
-}
-
+/* Dataframe table text */
 table, th, td {
-  color: white !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 </style>
 """
-st.markdown(base_css, unsafe_allow_html=True)
+
 
 # ----------------------------------------------------
 # Dark Mode CSS
