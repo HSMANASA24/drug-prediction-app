@@ -35,26 +35,68 @@ USERS = {"admin": hash_password("admin123")}
 # =====================================================
 base_css = """
 <style>
-/* Layout + glass panel */
 body { background: linear-gradient(135deg, #f4f7fb, #e8eefc); }
 section[data-testid="stSidebar"] { background: #ffffff !important; color:#000 !important; }
 .glass-panel { backdrop-filter: blur(8px); background: rgba(255,255,255,0.85); border-radius:12px; padding:16px; margin-bottom:16px; color:#000 !important; }
-h1,h2,h3,h4 { color:#0b2545 !important; font-weight:700; }
-input, select, textarea { background: rgba(255,255,255,0.98)!important; color:#000!important; border-radius:8px!important; }
-.stButton>button { background:#0b63b5!important; color:#fff!important; border-radius:8px!important; font-weight:600!important; }
+
+h1,h2,h3,h4 {
+    color:#0b2545 !important;
+    font-weight:800;
+}
+
+/* Inputs */
+input, select, textarea {
+    background: #ffffff !important;
+    color:#000!important;
+    border-radius:8px!important;
+}
+
+/* Buttons */
+.stButton>button {
+    background:#0b63b5!important;
+    color:#fff!important;
+    font-weight:600!important;
+    border-radius:8px!important;
+}
 </style>
 """
+
 
 dark_css = """
 <style>
 body { background:#0f1724!important; color:#eef2ff!important; }
 section[data-testid="stSidebar"] { background:#0b1220!important; color:#fff!important; }
-.glass-panel { backdrop-filter: blur(6px); background: rgba(20,20,25,0.6)!important; border-radius:12px; padding:16px; margin-bottom:16px; color:#fff!important; }
-h1,h2,h3,h4 { color:#a8d0ff !important; font-weight:700; }
-input, select, textarea { background: rgba(255,255,255,0.03)!important; color:#fff!important; border-radius:8px!important; }
-.stButton>button { background:#1f6feb!important; color:#fff!important; }
+
+.glass-panel {
+    backdrop-filter: blur(6px);
+    background: rgba(30,30,35,0.6)!important;
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:16px;
+    color:#fff!important;
+}
+
+h1,h2,h3,h4 {
+    color:#e5efff !important;
+    font-weight:800;
+}
+
+/* Inputs */
+input, select, textarea {
+    background: rgba(255,255,255,0.08)!important;
+    color:#fff!important;
+    border-radius:8px!important;
+}
+
+/* Buttons */
+.stButton>button {
+    background:#1f6feb!important;
+    color:#fff!important;
+    border-radius:8px!important;
+}
 </style>
 """
+
 
 # =====================================================
 # Authentication utilities
