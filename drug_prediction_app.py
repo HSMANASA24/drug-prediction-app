@@ -204,6 +204,7 @@ drug_details = {
         "precautions": "Not recommended for asthma patients.",
         "dosage": "50 mg once daily."
     },
+
     "Losartan": {
         "name": "Losartan",
         "use": "Used for high blood pressure.",
@@ -212,6 +213,7 @@ drug_details = {
         "precautions": "Avoid in pregnancy.",
         "dosage": "25–50 mg per day."
     },
+
     "ORS-K": {
         "name": "ORS-K",
         "use": "Corrects sodium–potassium imbalance.",
@@ -220,6 +222,7 @@ drug_details = {
         "precautions": "Monitor Na/K levels.",
         "dosage": "As required during dehydration or imbalance."
     },
+
     "Atorvastatin": {
         "name": "Atorvastatin",
         "use": "Used for high cholesterol.",
@@ -228,6 +231,7 @@ drug_details = {
         "precautions": "Avoid high-fat diet; monitor liver function.",
         "dosage": "10–20 mg in the evening."
     },
+
     "Amlodipine-Atorvastatin": {
         "name": "Amlodipine-Atorvastatin",
         "use": "Used for high BP and high cholesterol together.",
@@ -236,7 +240,8 @@ drug_details = {
         "precautions": "Regular BP and cholesterol monitoring.",
         "dosage": "1 tablet daily."
     }
-},
+}
+
     "Losartan": {
         "name": "Losartan",
         "use": "Used for high blood pressure.",
