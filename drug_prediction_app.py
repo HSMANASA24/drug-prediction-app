@@ -2,20 +2,42 @@ import streamlit as st
 import pandas as pd
 import io
 import datetime
+import hashlib
+import secrets
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 # -------------------------
-# Page config
+# App configuration
 # -------------------------
 st.set_page_config(page_title="Drug Prescription Classifier", page_icon="💊", layout="centered")
 
 # -------------------------
-# CSS: Light + Dark themes (no f-strings)
+# Simple secure password utilities
+# -------------------------
+# Use a server-side secret salt (in production, keep this secret and out of source)
+_SALT = "a9f5b3c7"  # change this to a secure random value for production
+
+def hash_password(password: str) -> str:
+    """Return a salted SHA-256 hex digest of the password."""
+    pw = (_SALT + password).encode('utf-8')
+    return hashlib.sha256(pw).hexdigest()
+
+# Default admin user (username: admin). Password: admin123 (hashed)
+USERS = {
+    "admin": hash_password("admin123")
+}
+
+# -------------------------
+# CSS: Light + Dark themes (titles bold only)
 # -------------------------
 base_css = """
 <style>
@@ -83,124 +105,26 @@ table, th, td {
 </style>
 """
 
-# -------------------------
-# Dark theme CSS (Modern Gray Mode)
-# -------------------------
-
+# Dark CSS (Modern Gray Mode)
 dark_css = """
 <style>
-/* Dark background */
-body {
-  background-color: #1c1c1c !important;
-  color: #ffffff !important;
-}
-
-/* Sidebar remains light */
-section[data-testid="stSidebar"] {
-  background-color: rgba(255,255,255,0.97) !important;
-  color: #111 !important;
-}
-
-/* Dark glass panels */
-.glass-panel, .glass-panel-2 {
-  backdrop-filter: blur(12px);
-  background: rgba(40,40,40,0.55) !important;
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid rgba(255,255,255,0.08);
-  color:#ffffff !important;
-}
-
-/* Normal text */
-html, body, div, p, span, label {
-  color:#ffffff !important;
-  font-weight:400 !important;
-}
-
-/* Titles bold */
-h1, h2, h3, h4 {
-  font-weight:800 !important;
-  color:#ffffff !important;
-}
-
-/* Inputs */
-input, select, textarea {
-  background: rgba(255,255,255,0.12) !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.25) !important;
-  color:#ffffff !important;
-}
+body { background-color: #1c1c1c !important; color: #ffffff !important; }
+section[data-testid="stSidebar"] { background-color: rgba(255,255,255,0.97) !important; color: #111 !important; }
+.glass-panel, .glass-panel-2 { backdrop-filter: blur(12px); background: rgba(40,40,40,0.55) !important; border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.08); color:#ffffff !important; }
+html, body, div, p, span, label { color:#ffffff !important; font-weight:400 !important; }
+h1, h2, h3, h4 { font-weight:800 !important; color:#ffffff !important; }
+input, select, textarea { background: rgba(255,255,255,0.12) !important; border-radius: 10px !important; border: 1px solid rgba(255,255,255,0.25) !important; color:#ffffff !important; }
 input::placeholder { color: #ddd !important; }
-
-/* Buttons */
-.stButton>button {
-  background: rgba(255,255,255,0.15) !important;
-  color:#ffffff !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(255,255,255,0.35);
-  font-weight:600 !important;
-}
+.stButton>button { background: rgba(255,255,255,0.15) !important; color:#ffffff !important; border-radius: 10px !important; border: 1px solid rgba(255,255,255,0.35); font-weight:600 !important; }
 .stButton>button:hover { background: rgba(255,255,255,0.25) !important; transform: translateY(-2px); }
-
-/* Tables readable */
 table, th, td { color:#ffffff !important; }
 </style>
 """
 
 # -------------------------
-# Sidebar (includes theme toggle + navigation)
+# Helper: sample data, model training, pdf, explanation
 # -------------------------
-with st.sidebar:
-    st.header("⚙️ Settings")
 
-    mode = st.radio(
-        "🌗 Theme Mode",
-        ["Light Mode", "Dark Mode"],
-        key="theme_switch"
-    )
-
-    page = st.radio(
-        "📄 Navigate",
-        ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"],
-        key="nav_select"
-    )
-
-    st.markdown("---")
-    st.write("Use sidebar to navigate.")
-
-# Apply the selected theme
-st.markdown(base_css, unsafe_allow_html=True)
-if mode == "Dark Mode":
-    st.markdown(dark_css, unsafe_allow_html=True)
-
-# -------------------------
-# Header
-# -------------------------
-st.markdown("""
-<div class="glass-panel" style="text-align:center;">
-    <h1>💊 Drug Prescription Classifier</h1>
-    <p style="color:#111; font-weight:600; margin-top:6px; font-size:18px;">
-        Predict drugs, explain why, generate reports, and monitor usage.
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
-# -------------------------
-# Drug info
-# -------------------------
-drug_images = {"drugA": "💊", "drugB": "🩺", "drugC": "⚗️", "drugX": "🧬", "drugY": "🩸"}
-
-drug_details = {
-    "drugA": {"name":"Drug A","use":"Used for normal BP and cholesterol.","mechanism":"Supports circulatory health.","side_effects":["Headache","Dry mouth"],"precautions":"Avoid alcohol.","dosage":"1 tablet daily."},
-    "drugB": {"name":"Drug B","use":"For high blood pressure.","mechanism":"Relaxes blood vessels.","side_effects":["Low BP","Fatigue"],"precautions":"Not for pregnancy.","dosage":"1 tablet/day."},
-    "drugC": {"name":"Drug C","use":"Balances electrolyte levels.","mechanism":"Balances Na/K.","side_effects":["Nausea"],"precautions":"Monitor levels.","dosage":"1–2 per day."},
-    "drugX": {"name":"Drug X","use":"High cholesterol.","mechanism":"Reduces cholesterol.","side_effects":["Muscle pain"],"precautions":"Avoid high-fat foods.","dosage":"Evening dose."},
-    "drugY": {"name":"Drug Y","use":"High BP + cholesterol.","mechanism":"Lowers BP & cholesterol.","side_effects":["Dizziness"],"precautions":"Regular BP checks.","dosage":"1 daily."}
-}
-
-# -------------------------
-# Sample data + model training
-# -------------------------
 def load_sample_df():
     return pd.DataFrame([
         [23,'F','HIGH','HIGH',0.792535,0.031258,'drugY'],
@@ -212,31 +136,36 @@ def load_sample_df():
     ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
 
 @st.cache_resource
-def train_model(df):
+def train_model(df, model_name='Logistic Regression'):
     X = df[['Age','Sex','BP','Cholesterol','Na','K']]
     y = df['Drug']
+
     numeric = ['Age','Na','K']
     categorical = ['Sex','BP','Cholesterol']
+
     pre = ColumnTransformer([
         ("num", StandardScaler(), numeric),
         ("cat", OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical)
     ])
-    pipe = Pipeline([("pre", pre), ("clf", LogisticRegression(max_iter=2000, multi_class='multinomial'))])
-    pipe.fit(X,y)
+
+    if model_name == 'Logistic Regression':
+        clf = LogisticRegression(max_iter=2000, multi_class='multinomial')
+    elif model_name == 'KNN':
+        clf = KNeighborsClassifier()
+    elif model_name == 'Decision Tree':
+        clf = DecisionTreeClassifier()
+    elif model_name == 'Random Forest':
+        clf = RandomForestClassifier(n_estimators=100)
+    elif model_name == 'SVM':
+        clf = SVC(probability=True)
+    else:
+        clf = LogisticRegression(max_iter=2000, multi_class='multinomial')
+
+    pipe = Pipeline([("pre", pre), ("clf", clf)])
+    pipe.fit(X, y)
     return pipe
 
-# -------------------------
-# Session logs
-# -------------------------
-if 'logs' not in st.session_state:
-    st.session_state['logs'] = []
-
-def append_log(entry: dict):
-    st.session_state['logs'].append(entry)
-
-# -------------------------
-# Explanation helper (simple rule-based)
-# -------------------------
+# Explanation (rule-based)
 def explain_prediction(df_train, input_df, predicted):
     try:
         stats = df_train.groupby('Drug').agg({'Age':'mean','Na':'mean','K':'mean'})
@@ -263,9 +192,7 @@ def explain_prediction(df_train, input_df, predicted):
 
     return "\n".join(reasons)
 
-# -------------------------
 # PDF report generator
-# -------------------------
 def create_pdf_report(patient_info: dict, prediction: str, explanation: str, drug_info: dict):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -301,12 +228,13 @@ def create_pdf_report(patient_info: dict, prediction: str, explanation: str, dru
     c.drawString(margin, y, "Explanation:")
     y -= 16
     c.setFont("Helvetica", 10)
-    for line in explanation.split("\\n"):
-        c.drawString(margin+10, y, line)
-        y -= 14
-        if y < 100:
-            c.showPage()
-            y = height - margin
+    if explanation:
+        for line in explanation.split("\n"):
+            c.drawString(margin+10, y, line)
+            y -= 14
+            if y < 100:
+                c.showPage()
+                y = height - margin
 
     y -= 8
     c.setFont("Helvetica-Bold", 12)
@@ -328,8 +256,93 @@ def create_pdf_report(patient_info: dict, prediction: str, explanation: str, dru
     return buffer
 
 # -------------------------
-# PAGES
+# Drug info dataset
 # -------------------------
+
+drug_images = {"drugA": "💊", "drugB": "🩺", "drugC": "⚗️", "drugX": "🧬", "drugY": "🩸"}
+
+drug_details = {
+    "drugA": {"name":"Drug A","use":"Used for normal BP and cholesterol.","mechanism":"Supports circulatory health.","side_effects":["Headache","Dry mouth"],"precautions":"Avoid alcohol.","dosage":"1 tablet daily."},
+    "drugB": {"name":"Drug B","use":"For high blood pressure.","mechanism":"Relaxes blood vessels.","side_effects":["Low BP","Fatigue"],"precautions":"Not for pregnancy.","dosage":"1 tablet/day."},
+    "drugC": {"name":"Drug C","use":"Balances electrolyte levels.","mechanism":"Balances Na/K.","side_effects":["Nausea"],"precautions":"Monitor levels.","dosage":"1–2 per day."},
+    "drugX": {"name":"Drug X","use":"High cholesterol.","mechanism":"Reduces cholesterol.","side_effects":["Muscle pain"],"precautions":"Avoid high-fat foods.","dosage":"Evening dose."},
+    "drugY": {"name":"Drug Y","use":"High BP + cholesterol.","mechanism":"Lowers BP & cholesterol.","side_effects":["Dizziness"],"precautions":"Regular BP checks.","dosage":"1 daily."}
+}
+
+# -------------------------
+# Authentication & session handling
+# -------------------------
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+    st.session_state['username'] = None
+
+
+def login_user(username: str, password: str) -> bool:
+    """Validate username + password against USERS (hashed)."""
+    if username in USERS:
+        hashed = USERS[username]
+        return secrets.compare_digest(hashed, hash_password(password))
+    return False
+
+
+def require_login():
+    """Show login screen and block access until authenticated."""
+    st.markdown('<div class="glass-panel" style="max-width:600px; margin:auto;">', unsafe_allow_html=True)
+    st.title("🔒 Admin Login")
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
+    col1, col2 = st.columns([1,1])
+    with col1:
+        if st.button("Login"):
+            if login_user(user, pwd):
+                st.session_state['authenticated'] = True
+                st.session_state['username'] = user
+                st.experimental_rerun()
+            else:
+                st.error("Invalid username or password.")
+    with col2:
+        if st.button("Forgot Password"):
+            st.info("If you forgot the admin password, update the USERS dict in the code or reset on the server.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# If not authenticated, show login and stop
+if not st.session_state['authenticated']:
+    st.markdown(base_css, unsafe_allow_html=True)
+    st.markdown(dark_css, unsafe_allow_html=True)  # ensure login readable in dark
+    require_login()
+    st.stop()
+
+# -------------------------
+# Main app (authenticated users only)
+# -------------------------
+# Apply theme (light by default; allow user to toggle if desired)
+with st.sidebar:
+    st.header(f"Welcome, {st.session_state.get('username')}")
+    theme_choice = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], index=0, key="theme_choice")
+    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "Admin", "About"], key="nav_main")
+    st.markdown("---")
+    if st.button("Logout"):
+        st.session_state['authenticated'] = False
+        st.session_state['username'] = None
+        st.experimental_rerun()
+
+# Apply selected theme
+st.markdown(base_css, unsafe_allow_html=True)
+if theme_choice == 'Dark Mode':
+    st.markdown(dark_css, unsafe_allow_html=True)
+
+# Header
+st.markdown("""
+<div class="glass-panel" style="text-align:center;">
+    <h1>💊 Drug Prescription Classifier</h1>
+    <p style="color:#111; font-weight:600; margin-top:6px; font-size:18px;">Predict drugs, explain why, generate reports, and monitor usage.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Session logs init
+if 'logs' not in st.session_state:
+    st.session_state['logs'] = []
 
 # Predictor page
 if page == "Predictor":
@@ -340,7 +353,10 @@ if page == "Predictor":
     st.markdown('</div>', unsafe_allow_html=True)
 
     df_train = pd.read_csv(uploaded) if uploaded else load_sample_df()
-    model = train_model(df_train)
+
+    # Model selection dropdown
+    model_name = st.selectbox("Select model", ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM"], index=0)
+    model = train_model(df_train, model_name=model_name)
 
     st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.subheader("Enter Patient Details")
@@ -362,12 +378,13 @@ if page == "Predictor":
         explanation = explain_prediction(df_train, input_df, pred)
         st.success(f"💊 Predicted Drug: **{pred}**")
         st.markdown("**Why this prediction?**")
-        st.write(explanation)
+        for line in explanation.split("\n"):
+            st.write("- ", line)
 
         append_log({
             "timestamp": datetime.datetime.now().isoformat(),
             "Age": age, "Sex": sex, "BP": bp, "Cholesterol": cholesterol, "Na": na, "K": k,
-            "prediction": pred
+            "prediction": pred, "model": model_name, "user": st.session_state.get('username')
         })
 
         if st.button("📄 Download PDF Report"):
@@ -376,7 +393,7 @@ if page == "Predictor":
             st.download_button("📥 Download PDF", data=pdf_buf, file_name=f"report_{pred}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Drug Information page
+# Drug Information
 if page == "Drug Information":
     st.markdown('<div class="glass-panel"><h2>Drug Information</h2></div>', unsafe_allow_html=True)
 
@@ -406,7 +423,7 @@ if page == "Drug Information":
     st.markdown("### Dosage")
     st.write(info["dosage"])
 
-# Bulk Prediction page
+# Bulk Prediction
 if page == "Bulk Prediction":
     st.markdown('<div class="glass-panel"><h2>Bulk Prediction</h2></div>', unsafe_allow_html=True)
 
@@ -437,7 +454,7 @@ if page == "Bulk Prediction":
     else:
         st.info("Upload a CSV file to begin.")
 
-# Monitoring page
+# Monitoring
 if page == "Monitoring":
     st.markdown('<div class="glass-panel"><h2>Monitoring</h2></div>', unsafe_allow_html=True)
     logs = st.session_state.get('logs', [])
@@ -454,7 +471,34 @@ if page == "Monitoring":
         st.dataframe(df_logs)
         st.download_button("📥 Download Logs", df_logs.to_csv(index=False).encode("utf-8"), "prediction_logs.csv", "text/csv")
 
-# About page
+# Admin page
+if page == "Admin":
+    st.markdown('<div class="glass-panel"><h2>Admin Panel</h2></div>', unsafe_allow_html=True)
+    st.write("Manage users and logs")
+
+    st.markdown('### Create new user (username + password)')
+    new_user = st.text_input("New username")
+    new_pass = st.text_input("New password", type="password")
+    if st.button("Create user"):
+        if new_user in USERS:
+            st.error("User already exists")
+        elif not new_user or not new_pass:
+            st.error("Provide username and password")
+        else:
+            USERS[new_user] = hash_password(new_pass)
+            st.success(f"User {new_user} created")
+
+    st.markdown('### View & clear logs')
+    logs = st.session_state.get('logs', [])
+    if logs:
+        st.dataframe(pd.DataFrame(logs))
+        if st.button("Clear logs"):
+            st.session_state['logs'] = []
+            st.success("Logs cleared")
+    else:
+        st.info("No logs yet")
+
+# About
 if page == "About":
     st.markdown('<div class="glass-panel"><h2>About</h2></div>', unsafe_allow_html=True)
     st.write("""
