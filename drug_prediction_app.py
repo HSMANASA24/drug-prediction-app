@@ -11,7 +11,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from xgboost import XGBClassifier
+
 from lightgbm import LGBMClassifier
 
 # =====================================================
@@ -149,7 +149,7 @@ def train_model(df, model_name):
         "Decision Tree": DecisionTreeClassifier(),
         "Random Forest": RandomForestClassifier(),
         "SVM": SVC(probability=True),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss'),
+       
         "LightGBM": LGBMClassifier()
     }
 
@@ -167,7 +167,7 @@ if page == "Predictor":
     st.markdown('<div class="glass-panel"><h2>Single Prediction</h2></div>', unsafe_allow_html=True)
 
     df_train = load_sample_df()
-    model_name = st.selectbox("Select Model", ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM", "XGBoost", "LightGBM"])
+    model_name = st.selectbox("Select Model", ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM", "LightGBM"])
 
     with st.spinner("Training model..."):
         model = train_model(df_train, model_name)
