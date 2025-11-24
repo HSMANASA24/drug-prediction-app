@@ -66,41 +66,74 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------------------
-# DARK MODE CSS (Applied AFTER mode is known)
-# --------------------------------------------------------------
 if mode == "Dark Mode":
     dark_css = """
     <style>
-        body { background-color: #1e1e1e; color: white; }
-        .css-18e3th9, .css-1pahdxg {
+        /* Main background */
+        html, body, [class*="css"]  {
             background-color: #1e1e1e !important;
-            color: white !important;
+            color: #ffffff !important;
         }
+
+        /* Sidebar */
+        section[data-testid="stSidebar"] {
+            background-color: #252525 !important;
+        }
+
+        /* Text Input, Number Input, Selectbox */
+        input, select, textarea {
+            background-color: #2d2d2d !important;
+            color: #ffffff !important;
+            border: 1px solid #444444 !important;
+        }
+
+        /* Streamlit containers & cards */
+        .stMarkdown, .stTextInput, .stNumberInput, .stSelectbox, .stFileUploader {
+            color: #ffffff !important;
+        }
+
+        /* File uploader background */
+        div[data-testid="stFileUploader"] {
+            background-color: #2d2d2d !important;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        /* Buttons */
         .stButton>button {
             background-color: #444444 !important;
             color: white !important;
+            border-radius: 8px;
         }
+
         .stButton>button:hover {
             background-color: #555555 !important;
         }
-        .css-10trblm { color: #4CAF50 !important; }
-        .stSuccess { background-color: #2d2d2d !important; color: white !important; }
-        .stTextInput>div>div>input,
-        .stSelectbox>div>div {
+
+        /* Radio Buttons */
+        div[role="radiogroup"] label {
+            color: white !important;
+        }
+
+        /* Selectbox inside container */
+        div[data-baseweb="select"] div {
             background-color: #2d2d2d !important;
             color: white !important;
+        }
+
+        /* Success / warning boxes */
+        .stAlert {
+            background-color: #2d2d2d !important;
+            color: white !important;
+        }
+
+        /* Title colors */
+        h1, h2, h3, h4 {
+            color: #4CAF50 !important;
         }
     </style>
     """
     st.markdown(dark_css, unsafe_allow_html=True)
-else:
-    light_css = """
-    <style>
-        body { background-color: white; color: black; }
-    </style>
-    """
-    st.markdown(light_css, unsafe_allow_html=True)
 
 # --------------------------------------------------------------
 # App Header
