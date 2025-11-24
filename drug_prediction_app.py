@@ -261,7 +261,7 @@ def explain_prediction(df_train, input_df, predicted):
         else:
             reasons.append(f"{col} = {inp} differs from typical {predicted} patients (usually {mode_val}).")
 
-    return "\\n".join(reasons)
+    return "\n".join(reasons)
 
 # -------------------------
 # PDF report generator
@@ -301,8 +301,7 @@ def create_pdf_report(patient_info: dict, prediction: str, explanation: str, dru
     c.drawString(margin, y, "Explanation:")
     y -= 16
     c.setFont("Helvetica", 10)
-    for line in explanation.split("
-"):
+    for line in explanation.split("\\n"):
         c.drawString(margin+10, y, line)
         y -= 14
         if y < 100:
