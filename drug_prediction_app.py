@@ -69,16 +69,23 @@ st.markdown(BASE_CSS, unsafe_allow_html=True)
 # doctor, Doctor@123
 # student, Student@123
 # -------------------------------------------------
+# -----------------------------
+# User Authentication (Updated)
+# -----------------------------
+
 _SALT = "a9f5b3c7"
+
 def hash_password(password: str) -> str:
+    import hashlib
     return hashlib.sha256((_SALT + password).encode()).hexdigest()
 
 USERS = {
-    "admin": "2c6e86244d7f669c447d4353bdca3fab2d1cc73f5c51a406fb0e6266b0f85e63",
-    "manasa": "3fb682bc3163bfdf80909311dfc86ad848f1e8ab76587c7b8082fbbe6d41ff3c",
-    "doctor": "56860e5d0f26d1f79ce911557299dc8ba719a3f0a5f7f08ce73825063ea0f29e",
-    "student": "02d6b184749eea90c563d6c9286c99c2a12c2fbbab549f7ee4df25fcbaf71c86"
+    "admin": "a46a1545ebbb0d9b2b77e8cb365615a0438af8b12421a29bf555f7930df4d08b",
+    "manasa": "3f01e5e3a73d0b04804048364a2b0d1e74e76dcacf84049c62fbe35db8ceac85",
+    "doctor": "6f75069c3b05233729a9e8f0e247f8739f2990fa9c4f84cf9d115bad8fbfe3db",
+    "student": "1f7a1bbfe520c4dc33dcbf63d6fa770b5b1ef19ce6c82383bf660516f0ae274d"
 }
+
 
 # -------------------------------------------------
 # Authentication (simple username + password)
