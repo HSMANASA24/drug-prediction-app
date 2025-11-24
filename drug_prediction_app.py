@@ -8,13 +8,65 @@ from sklearn.linear_model import LogisticRegression
 # --------------------------------------------------------------
 # Streamlit Page Settings
 # --------------------------------------------------------------
-st.set_page_config(page_title="Drug Prescription Classifier", layout="centered")
-
-st.title("💊 Drug Prescription Classifier")
-st.write("Predict drug type using patient health information.")
+st.set_page_config(
+    page_title="Drug Prescription Classifier",
+    page_icon="💊",
+    layout="centered"
+)
 
 # --------------------------------------------------------------
-# Sample Dataset (Used if no CSV uploaded)
+# Custom CSS Theme Enhancements
+# --------------------------------------------------------------
+st.markdown("""
+    <style>
+        /* Center the title */
+        .css-10trblm {
+            text-align: center;
+        }
+
+        /* Buttons */
+        .stButton>button {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            padding: 10px 20px;
+            border: none;
+            font-size: 18px;
+        }
+
+        .stButton>button:hover {
+            background-color: #45A049;
+            color: white;
+        }
+
+        /* Labels bold */
+        label {
+            font-weight: 600 !important;
+        }
+
+        /* Success message styling */
+        .stSuccess {
+            border-left: 5px solid #4CAF50;
+            padding-left: 10px;
+        }
+
+        /* Improve spacing */
+        .block-container {
+            padding-top: 2rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --------------------------------------------------------------
+# App Header
+# --------------------------------------------------------------
+st.title("💊 Drug Prescription Classifier")
+st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", unsafe_allow_html=True)
+
+st.write("Upload your dataset or use the built-in sample data to predict drug types.")
+
+# --------------------------------------------------------------
+# Sample Dataset
 # --------------------------------------------------------------
 def load_sample_df():
     return pd.DataFrame([
@@ -26,8 +78,9 @@ def load_sample_df():
         [45, 'M', 'NORMAL', 'NORMAL', 0.700000, 0.050000, 'drugA']
     ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
 
+
 # --------------------------------------------------------------
-# Model Training Function (Cached)
+# Model Training Function
 # --------------------------------------------------------------
 @st.cache_resource
 def train_model(df):
@@ -51,7 +104,7 @@ def train_model(df):
     return model
 
 # --------------------------------------------------------------
-# Upload Dataset
+# File Upload Section
 # --------------------------------------------------------------
 uploaded = st.file_uploader("📂 Upload CSV Dataset (optional)", type=['csv'])
 
@@ -62,11 +115,10 @@ else:
     df = load_sample_df()
     st.info("Using built-in sample dataset.")
 
-# Train model
 model = train_model(df)
 
 # --------------------------------------------------------------
-# Prediction Form
+# Prediction Form UI
 # --------------------------------------------------------------
 st.subheader("🧪 Enter Patient Details")
 
@@ -82,11 +134,18 @@ with col2:
     na = st.number_input("Sodium (Na)", value=0.70, format="%.4f")
     k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
 
+
+# --------------------------------------------------------------
+# Prediction Button
+# --------------------------------------------------------------
 if st.button("🔍 Predict Drug Type"):
     input_data = pd.DataFrame([[age, sex, bp, cholesterol, na, k]],
                               columns=['Age','Sex','BP','Cholesterol','Na','K'])
     prediction = model.predict(input_data)[0]
     st.success(f"💊 **Predicted Drug:** {prediction}")
 
+# --------------------------------------------------------------
+# Footer
+# --------------------------------------------------------------
 st.markdown("---")
-st.caption("Made with ❤️ using Streamlit • Ideal for Cloud Deployment")
+st.caption("Built with ❤️ using Streamlit • Drug Predictor App")
