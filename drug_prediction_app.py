@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import io
@@ -87,6 +86,7 @@ table, th, td {
 # -------------------------
 # Dark theme CSS (Modern Gray Mode)
 # -------------------------
+
 dark_css = """
 <style>
 /* Dark background */
@@ -261,7 +261,8 @@ def explain_prediction(df_train, input_df, predicted):
         else:
             reasons.append(f"{col} = {inp} differs from typical {predicted} patients (usually {mode_val}).")
 
-    return "\n".join(reasons)
+    return "
+".join(reasons)
 
 # -------------------------
 # PDF report generator
@@ -301,13 +302,13 @@ def create_pdf_report(patient_info: dict, prediction: str, explanation: str, dru
     c.drawString(margin, y, "Explanation:")
     y -= 16
     c.setFont("Helvetica", 10)
-    if explanation:
-        for line in explanation.split("\n"):
-            c.drawString(margin+10, y, line)
-            y -= 14
-            if y < 100:
-                c.showPage()
-                y = height - margin
+    for line in explanation.split("
+"):
+        c.drawString(margin+10, y, line)
+        y -= 14
+        if y < 100:
+            c.showPage()
+            y = height - margin
 
     y -= 8
     c.setFont("Helvetica-Bold", 12)
@@ -326,7 +327,7 @@ def create_pdf_report(patient_info: dict, prediction: str, explanation: str, dru
     y -= 18
     c.save()
     buffer.seek(0)
-    return buffer.getvalue()
+    return buffer
 
 # -------------------------
 # PAGES
@@ -373,8 +374,8 @@ if page == "Predictor":
 
         if st.button("📄 Download PDF Report"):
             patient_info = {"Age": age, "Sex": sex, "BP": bp, "Cholesterol": cholesterol, "Na": na, "K": k}
-            pdf_bytes = create_pdf_report(patient_info, pred, explanation, drug_details.get(pred, {}))
-            st.download_button("📥 Download PDF", data=pdf_bytes, file_name=f"report_{pred}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
+            pdf_buf = create_pdf_report(patient_info, pred, explanation, drug_details.get(pred, {}))
+            st.download_button("📥 Download PDF", data=pdf_buf, file_name=f"report_{pred}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Drug Information page
@@ -429,7 +430,7 @@ if page == "Bulk Prediction":
             for _, r in df_bulk.iterrows():
                 append_log({
                     "timestamp": datetime.datetime.now().isoformat(),
-                    "Age": r['Age'], "Sex": r['Sex'], "BP": r['BP'], "Cholesterol': r['Cholesterol'],
+                    "Age": r['Age'], "Sex": r['Sex'], "BP": r['BP'], "Cholesterol": r['Cholesterol'],
                     "Na": r['Na'], "K": r['K'], "prediction": r['Predicted_Drug']
                 })
 
