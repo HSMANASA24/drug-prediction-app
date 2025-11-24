@@ -6,170 +6,179 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 
 # --------------------------------------------------------------
-# Streamlit Page Settings
+# Page Config
 # --------------------------------------------------------------
-st.set_page_config(
-    page_title="Drug Prescription Classifier",
-    page_icon="💊",
-    layout="centered"
-)
+st.set_page_config(page_title="Drug Prescription Classifier", page_icon="💊", layout="centered")
 
 # --------------------------------------------------------------
-# Sidebar (First → ensures 'mode' + 'page' defined early)
+# Sidebar (define first — required for mode)
 # --------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
     mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
-    
+
     st.markdown("---")
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information"], key="page_selector")
+    page = st.radio(
+        "📄 Navigate",
+        ["Predictor", "Drug Information", "Bulk Prediction", "About"],
+        key="page_selector"
+    )
     st.markdown("---")
-    st.write("Customize the look and browse pages.")
+    st.write("Customize your experience.")
 
 # --------------------------------------------------------------
-# Base CSS (Light Mode Styling)
+# Base Light Theme CSS
 # --------------------------------------------------------------
 st.markdown("""
-    <style>
-        .css-10trblm { text-align: center; }
+<style>
+    .css-10trblm { text-align: center; }
 
-        .stButton>button {
-            background-color: #4CAF50; color: white;
-            border-radius: 8px; padding: 10px 20px;
-            border: none; font-size: 18px;
-        }
-        .stButton>button:hover {
-            background-color: #45A049; color: white;
-        }
+    .stButton>button {
+        background-color: #4CAF50; 
+        color: white;
+        border-radius: 8px;
+        padding: 10px 20px;
+        border: none;
+        font-size: 18px;
+    }
+    .stButton>button:hover {
+        background-color: #45A049;
+    }
 
-        label { font-weight: 600 !important; }
+    label { font-weight: 600 !important; }
 
-        .stSuccess {
-            border-left: 5px solid #4CAF50;
-            padding-left: 10px;
-        }
-
-        .block-container { padding-top: 2rem; }
-    </style>
+    .block-container { padding-top: 2rem; }
+</style>
 """, unsafe_allow_html=True)
 
 
 # --------------------------------------------------------------
-# DARK MODE OVERRIDE
+# Dark Mode (Sidebar stays LIGHT)
 # --------------------------------------------------------------
 if mode == "Dark Mode":
     dark_css = """
     <style>
-        /* MAIN PAGE ONLY */
         html, body, [class*="stApp"] {
             background-color: #1e1e1e !important;
-            color: #ffffff !important;
+            color: white !important;
         }
 
-        /* Keep sidebar light → do not modify it */
+        /* Keep sidebar light */
+        section[data-testid="stSidebar"] * {
+            background-color: inherit !important;
+            color: inherit !important;
+        }
 
-        /* Inputs, selects, textareas */
         input, select, textarea {
             background-color: #2d2d2d !important;
             color: white !important;
-            border: 1px solid #444444 !important;
+            border: 1px solid #444 !important;
         }
 
-        /* Selectbox internal */
         div[data-baseweb="select"] div {
             background-color: #2d2d2d !important;
             color: white !important;
         }
 
-        /* File uploader */
         div[data-testid="stFileUploader"] {
             background-color: #2d2d2d !important;
             border-radius: 8px;
         }
 
-        /* Buttons */
         .stButton>button {
-            background-color: #444444 !important;
+            background-color: #444 !important;
             color: white !important;
         }
         .stButton>button:hover {
-            background-color: #555555 !important;
+            background-color: #555 !important;
         }
 
-        /* Radio/checkbox text */
         div[role="radiogroup"] label {
             color: white !important;
         }
 
-        /* Success boxes */
         .stAlert {
             background-color: #2d2d2d !important;
             color: white !important;
         }
 
-        /* Titles */
-        h1, h2, h3, h4 {
+        h1, h2, h3, h4, h5 {
             color: #4CAF50 !important;
         }
     </style>
     """
     st.markdown(dark_css, unsafe_allow_html=True)
 
+
 # --------------------------------------------------------------
-# App Header (Visible for both pages)
+# Header
 # --------------------------------------------------------------
 st.title("💊 Drug Prescription Classifier")
-st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", 
+            unsafe_allow_html=True)
 
 
 # --------------------------------------------------------------
-# Drug Information Data
+# Drug Emoji Icons (not real icons)
+# --------------------------------------------------------------
+drug_images = {
+    "drugA": "💊",
+    "drugB": "🩺",
+    "drugC": "⚗️",
+    "drugX": "🧬",
+    "drugY": "🩸"
+}
+
+
+# --------------------------------------------------------------
+# Drug Details
 # --------------------------------------------------------------
 drug_details = {
     "drugA": {
         "name": "Drug A",
-        "use": "Used for normal BP and normal cholesterol levels.",
-        "mechanism": "Supports circulatory function.",
+        "use": "Used for normal BP and normal cholesterol.",
+        "mechanism": "Supports circulatory health.",
         "side_effects": ["Headache", "Dry mouth", "Dizziness"],
         "precautions": "Avoid alcohol; stay hydrated.",
-        "dosage": "1 tablet daily after meals."
+        "dosage": "1 tablet daily."
     },
     "drugB": {
         "name": "Drug B",
-        "use": "For high blood pressure patients.",
-        "mechanism": "Relaxes blood vessels to reduce BP.",
+        "use": "For high blood pressure.",
+        "mechanism": "Relaxes blood vessels.",
         "side_effects": ["Low BP", "Fatigue"],
         "precautions": "Not safe in pregnancy.",
-        "dosage": "1 tablet/day or as prescribed."
+        "dosage": "1 tablet/day."
     },
     "drugC": {
         "name": "Drug C",
-        "use": "For abnormal sodium or potassium levels.",
-        "mechanism": "Balances electrolyte concentration.",
+        "use": "For electrolyte imbalance.",
+        "mechanism": "Balances Na/K levels.",
         "side_effects": ["Nausea", "Stomach upset"],
-        "precautions": "Monitor Na/K levels regularly.",
-        "dosage": "1–2 tablets per day."
+        "precautions": "Monitor Na/K regularly.",
+        "dosage": "1–2 tablets/day."
     },
     "drugX": {
         "name": "Drug X",
-        "use": "For normal BP + high cholesterol.",
+        "use": "Normal BP + high cholesterol.",
         "mechanism": "Reduces cholesterol synthesis.",
         "side_effects": ["Muscle pain", "Weakness"],
-        "precautions": "Avoid high-fat foods.",
-        "dosage": "Take in the evening."
+        "precautions": "Avoid high-fat diet.",
+        "dosage": "Take in evening."
     },
     "drugY": {
         "name": "Drug Y",
-        "use": "For high BP + high cholesterol.",
-        "mechanism": "Slows cholesterol production + reduces BP.",
+        "use": "High BP + high cholesterol.",
+        "mechanism": "Reduces BP + cholesterol.",
         "side_effects": ["Dizziness", "Muscle fatigue"],
         "precautions": "Check BP regularly.",
-        "dosage": "One tablet per day."
+        "dosage": "1 tablet/day."
     }
 }
 
+
 # --------------------------------------------------------------
-# SAMPLE DATASET
+# Sample Dataset
 # --------------------------------------------------------------
 def load_sample_df():
     return pd.DataFrame([
@@ -183,7 +192,7 @@ def load_sample_df():
 
 
 # --------------------------------------------------------------
-# MODEL TRAINING FUNCTION
+# Model Training
 # --------------------------------------------------------------
 @st.cache_resource
 def train_model(df):
@@ -208,20 +217,18 @@ def train_model(df):
 
 
 # --------------------------------------------------------------
-# PAGE 1 → PREDICTOR PAGE
+# PAGE 1 → Predictor
 # --------------------------------------------------------------
 if page == "Predictor":
+    st.subheader("📂 Dataset")
 
-    st.write("Upload your dataset or use the sample data below.")
-
-    uploaded = st.file_uploader("📂 Upload CSV Dataset (optional)", type=['csv'])
-
+    uploaded = st.file_uploader("Upload CSV (optional)", type=['csv'])
     if uploaded:
         df = pd.read_csv(uploaded)
-        st.success("Dataset uploaded successfully!")
+        st.success("Dataset uploaded!")
     else:
         df = load_sample_df()
-        st.info("Using built-in sample dataset.")
+        st.info("Using sample dataset.")
 
     model = train_model(df)
 
@@ -229,44 +236,43 @@ if page == "Predictor":
 
     col1, col2 = st.columns(2)
     with col1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=45)
+        age = st.number_input("Age", 1, 120, 45)
         sex = st.selectbox("Sex", ["F", "M"])
-        bp = st.selectbox("Blood Pressure (BP)", ["LOW", "NORMAL", "HIGH"])
-
+        bp = st.selectbox("BP", ["LOW", "NORMAL", "HIGH"])
     with col2:
         cholesterol = st.selectbox("Cholesterol", ["HIGH", "NORMAL"])
         na = st.number_input("Sodium (Na)", value=0.70, format="%.4f")
         k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
 
-    if st.button("🔍 Predict Drug Type"):
+    if st.button("🔍 Predict Drug"):
         input_df = pd.DataFrame([[age, sex, bp, cholesterol, na, k]],
                                 columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        prediction = model.predict(input_df)[0]
-        st.success(f"💊 **Predicted Drug:** {prediction}")
+        pred = model.predict(input_df)[0]
+        st.success(f"💊 Predicted Drug: **{pred}**")
 
 
 # --------------------------------------------------------------
-# PAGE 2 → DRUG INFORMATION PAGE
+# PAGE 2 → Drug Information
 # --------------------------------------------------------------
 if page == "Drug Information":
 
-    st.title("📘 Drug Information Guide")
-    st.write("Select any drug to see detailed medical information.")
+    st.title("📘 Drug Information")
 
-    drug_choice = st.selectbox("Choose Drug", list(drug_details.keys()))
-
+    drug_choice = st.selectbox("Select Drug", list(drug_details.keys()))
     info = drug_details[drug_choice]
 
-    st.markdown(f"## 💊 {info['name']}")
-    st.markdown(f"### 🧭 Use")
+    icon = drug_images[drug_choice]
+    st.markdown(f"## {icon} {info['name']}")
+
+    st.markdown("### 🧭 Use")
     st.write(info["use"])
 
-    st.markdown(f"### 🔬 Mechanism")
+    st.markdown("### 🔬 Mechanism")
     st.write(info["mechanism"])
 
     st.markdown("### ⚠️ Side Effects")
-    for item in info["side_effects"]:
-        st.markdown(f"- {item}")
+    for s in info["side_effects"]:
+        st.markdown(f"- {s}")
 
     st.markdown("### 🔒 Precautions")
     st.write(info["precautions"])
@@ -276,7 +282,77 @@ if page == "Drug Information":
 
 
 # --------------------------------------------------------------
+# PAGE 3 → Bulk Prediction
+# --------------------------------------------------------------
+if page == "Bulk Prediction":
+
+    st.title("📂 Bulk Drug Prediction")
+    csv_file = st.file_uploader("Upload CSV for bulk prediction", type=['csv'])
+
+    if csv_file:
+        bulk_df = pd.read_csv(csv_file)
+        st.success("File uploaded!")
+        st.write("### Preview")
+        st.dataframe(bulk_df.head())
+
+        required = ['Age','Sex','BP','Cholesterol','Na','K']
+        missing = [c for c in required if c not in bulk_df.columns]
+
+        if missing:
+            st.error(f"Missing columns: {missing}")
+        else:
+            model = train_model(load_sample_df())
+            bulk_df["Predicted_Drug"] = model.predict(bulk_df[required])
+
+            st.success("Predictions complete!")
+            st.dataframe(bulk_df.head())
+
+            st.download_button(
+                "📥 Download Results CSV",
+                data=bulk_df.to_csv(index=False).encode("utf-8"),
+                file_name="drug_predictions.csv",
+                mime="text/csv"
+            )
+    else:
+        st.info("Upload a CSV file to start.")
+
+
+# --------------------------------------------------------------
+# PAGE 4 → About
+# --------------------------------------------------------------
+if page == "About":
+
+    st.title("ℹ️ About This App")
+
+    st.markdown("""
+    ### 💊 Drug Prescription Classifier  
+    This AI-powered system predicts drug types using patient information such as:
+
+    - Age  
+    - Sex  
+    - Blood Pressure  
+    - Cholesterol  
+    - Sodium  
+    - Potassium  
+
+    ### 🧠 Features  
+    - Single prediction  
+    - Drug Information  
+    - Bulk prediction  
+    - Dark/Light mode  
+
+    ### 🏗️ Built With  
+    - Streamlit  
+    - Scikit-Learn  
+    - Pandas  
+    - Python  
+
+    ### ❤️ Developer  
+    Created for healthcare learning and prediction insights.
+    """)
+
+# --------------------------------------------------------------
 # Footer
 # --------------------------------------------------------------
 st.markdown("---")
-st.caption("Built with ❤️ using Streamlit • Drug Predictor App")
+st.caption("Built with ❤️ in Streamlit • Drug Predictor App")
