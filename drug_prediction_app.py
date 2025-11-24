@@ -82,14 +82,13 @@ def require_login():
         if login_user(user, pwd):
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
-            st.rerun()
+            st.experimental_rerun()
         else:
             st.error("❌ Invalid username or password")
     if forgot_btn:
         st.info("Reset password manually in the USERS dictionary.")
 
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 # BLOCK APP UNTIL LOGIN
 if not st.session_state["authenticated"]:
@@ -103,11 +102,10 @@ if not st.session_state["authenticated"]:
 with st.sidebar:
     st.header(f"Welcome, {st.session_state['username']}")
     theme_choice = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"])
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "Admin", "About"])
+    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Admin", "About"])
     if st.button("Logout"):
         st.session_state["authenticated"] = False
-        st.rerun()
-
+        st.experimental_rerun()
 
 # Apply theme
 st.markdown(base_css, unsafe_allow_html=True)
@@ -176,23 +174,79 @@ if page == "Predictor":
         st.success(f"Predicted Drug: {pred}")
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ---------------------------
+# Drug details
+# ---------------------------
+drug_details = {
+    "drugA": {
+        "name": "Drug A",
+        "use": "Used for normal BP and normal cholesterol.",
+        "mechanism": "Supports circulatory health.",
+        "side_effects": ["Headache", "Dry mouth", "Dizziness"],
+        "precautions": "Avoid alcohol; stay hydrated.",
+        "dosage": "1 tablet daily."
+    },
+    "drugB": {
+        "name": "Drug B",
+        "use": "For high blood pressure.",
+        "mechanism": "Relaxes blood vessels.",
+        "side_effects": ["Low BP", "Fatigue"],
+        "precautions": "Not suitable for pregnancy.",
+        "dosage": "1 tablet/day."
+    },
+    "drugC": {
+        "name": "Drug C",
+        "use": "For electrolyte imbalance.",
+        "mechanism": "Balances Na/K levels.",
+        "side_effects": ["Nausea", "Stomach upset"],
+        "precautions": "Monitor Na/K levels regularly.",
+        "dosage": "1–2 tablets/day."
+    },
+    "drugX": {
+        "name": "Drug X",
+        "use": "Normal BP + high cholesterol.",
+        "mechanism": "Reduces cholesterol synthesis.",
+        "side_effects": ["Muscle pain", "Weakness"],
+        "precautions": "Avoid high-fat diet.",
+        "dosage": "Take in the evening."
+    },
+    "drugY": {
+        "name": "Drug Y",
+        "use": "High BP + high cholesterol.",
+        "mechanism": "Lowers cholesterol synthesis and reduces BP.",
+        "side_effects": ["Dizziness", "Muscle fatigue"],
+        "precautions": "Check BP regularly.",
+        "dosage": "1 tablet/day."
+    }
+}
+
 # =====================================================
 # Drug Information Page
 # =====================================================
 if page == "Drug Information":
-    st.title("Drug Information")
-    st.info("Detailed drug descriptions will appear here.")
+    st.title("💊 Drug Information")
+    st.write("Browse details of all available drugs.")
+
+    for key, info in drug_details.items():
+        with st.expander(f"📌 {info['name']}"):
+            st.markdown(f"**Use:** {info['use']}")
+            st.markdown(f"**Mechanism:** {info['mechanism']}")
+            st.markdown(f"**Side Effects:** {', '.join(info['side_effects'])}")
+            st.markdown(f"**Precautions:** {info['precautions']}")
+            st.markdown(f"**Dosage:** {info['dosage']}")
 
 # =====================================================
-# Bulk Prediction Page
+# (Bulk Prediction Removed)
 # =====================================================
+
 if page == "Bulk Prediction":
     st.title("Bulk Prediction")
     st.info("Upload CSV for multiple predictions.")
 
 # =====================================================
-# Monitoring Page
+# (Monitoring Removed)
 # =====================================================
+
 if page == "Monitoring":
     st.title("Prediction Monitoring")
     st.info("Graphical logs will appear here.")
@@ -201,12 +255,87 @@ if page == "Monitoring":
 # Admin Page
 # =====================================================
 if page == "Admin":
-    st.title("Admin Panel")
-    st.info("Manage users and logs.")
+    st.title("👤 User Management — Admin Panel")
+    st.write("Add or remove application users.")
+
+    # Display current users
+    st.subheader("Current Users")
+    for u in USERS.keys():
+        st.markdown(f"• **{u}**")
+
+    st.markdown("---")
+
+    st.subheader("Add New User")
+    new_user = st.text_input("Username", key="add_user_name")
+    new_pass = st.text_input("Password", type="password", key="add_user_pass")
+
+    if st.button("Add User", key="add_user_btn"):
+        if new_user in USERS:
+            st.error("User already exists!")
+        else:
+            USERS[new_user] = hash_password(new_pass)
+            st.success(f"User '{new_user}' added successfully!")
+            st.rerun()
+
+    st.markdown("---")
+
+    st.subheader("Remove User")
+    user_to_delete = st.selectbox("Select User to Remove", list(USERS.keys()), key="remove_user_select")
+
+    if st.button("Remove User", key="remove_user_btn"):
+        if user_to_delete == "admin":
+            st.error("Cannot remove the main admin user.")
+        else:
+            USERS.pop(user_to_delete, None)
+            st.success(f"User '{user_to_delete}' removed successfully!")
+            st.rerun()
 
 # =====================================================
 # About Page
 # =====================================================
 if page == "About":
-    st.title("About")
-    st.write("Drug Predictor App — with ML models, Dark Mode, and Login System.")
+    st.title("ℹ️ About This Application")
+    st.markdown(
+        """
+        ## 💊 Drug Prescription Classifier
+        This application is an intelligent drug prediction system built using **Machine Learning**.
+
+        ### 🔍 What it does
+        - Predicts the most suitable drug based on patient health indicators
+        - Uses multiple ML models (Logistic Regression, KNN, Decision Tree, Random Forest, SVM)
+        - Provides detailed drug information
+        - Includes secure login with an Admin Panel
+        - Allows administrators to manage user accounts
+
+        ### 🧠 How predictions work
+        The model analyzes:
+        - **Age**
+        - **Sex**
+        - **Blood Pressure (BP)**
+        - **Cholesterol Level**
+        - **Sodium (Na)** and **Potassium (K)** levels
+
+        Based on these features, the algorithm recommends one of the available drugs.
+
+        ### 🎨 Application Features
+        - Modern **glassmorphism UI**
+        - **Light/Dark mode themes**
+        - Clean and responsive layout
+        - Secure password hashing system
+
+        ### 👨‍⚕️ Intended Use
+        This tool is designed for:
+        - Students learning machine learning
+        - Healthcare projects
+        - Demonstration of predictive modeling
+        - Academic research
+
+        ### 🛠 Developer Notes
+        - Built with **Python + Streamlit**
+        - Machine learning powered by **scikit-learn**
+        - Styling enhanced using **HTML/CSS** inside Streamlit
+
+        ---
+        **Made with ❤️ for educational and demonstration purposes.**
+        """
+    )
