@@ -4,6 +4,6 @@ pandas
 joblib
 seaborn
 matplotlib
-xgboost
+
 lightgbm
 reportlab
