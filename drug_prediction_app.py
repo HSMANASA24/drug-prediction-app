@@ -194,6 +194,20 @@ if page == "Predictor":
 "
             "- Sodium (Na): " + str(na) + "
 "
+            "- Potassium (K): " + str(k) + "
+"
+        ) + "** because:
+"
+            "- Age: " + str(age) + "
+"
+            "- Sex: " + str(sex) + "
+"
+            "- BP: " + str(bp) + "
+"
+            "- Cholesterol: " + str(chol) + "
+"
+            "- Sodium (Na): " + str(na) + "
+"
             "- Potassium (K): " + str(k)
         )
         st.info(explanation)(explanation)(explanation)
