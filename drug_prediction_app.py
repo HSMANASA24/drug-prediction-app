@@ -82,7 +82,7 @@ def require_login():
         if login_user(user, pwd):
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("❌ Invalid username or password")
     if forgot_btn:
@@ -105,7 +105,7 @@ with st.sidebar:
     page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Admin", "About"])
     if st.button("Logout"):
         st.session_state["authenticated"] = False
-        st.experimental_rerun()
+        st.rerun()
 
 # Apply theme
 st.markdown(base_css, unsafe_allow_html=True)
