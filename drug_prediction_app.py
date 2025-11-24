@@ -188,6 +188,9 @@ if page == "Predictor":
             f"- Sodium (Na): {na}
 "
             f"- Potassium (K): {k}"
+        ): {na}
+"
+            f"- Potassium (K): {k}"
         )
         st.info(explanation)(explanation)
 
