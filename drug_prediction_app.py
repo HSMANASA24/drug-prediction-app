@@ -103,15 +103,15 @@ table, th, td {
 # ----------------------
 # Header
 # ----------------------
-st.markdown('<div class="glass-panel"><h1>💊 Drug Prescription Classifier</h1>'
-            st.markdown("""
-<div class="glass-panel">
+st.markdown("""
+<div class="glass-panel" style="text-align:center;">
     <h1>💊 Drug Prescription Classifier</h1>
     <p style="color:#111; font-weight:800; margin-top:6px; font-size:18px;">
         Predict drugs, explain why, generate reports, and monitor usage.
     </p>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ----------------------
 # Emoji icons & drug info
