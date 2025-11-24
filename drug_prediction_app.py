@@ -168,31 +168,29 @@ if page == "Predictor":
         k = st.number_input("Potassium (K)", format="%.3f", value=0.05)
 
     if st.button("Predict"):
-        input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        proba = model.predict_proba(input_df)[0]
-        pred = model.predict(input_df)[0]
-        confidence = max(proba) * 100
-        st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
+    input_df = pd.DataFrame(
+        [[age, sex, bp, chol, na, k]],
+        columns=['Age', 'Sex', 'BP', 'Cholesterol', 'Na', 'K']
+    )
 
-        explanation = (
-            "The model predicted " + str(pred) + " because:
-"
-            "- Age: " + str(age) + "
-"
-            "- Sex: " + str(sex) + "
-"
-            "- BP: " + str(bp) + "
-"
-            "- Cholesterol: " + str(chol) + "
-"
-            "- Sodium (Na): " + str(na) + "
-"
-            "- Potassium (K): " + str(k) + "
-"
-        )
-        st.info(explanation)(explanation)(explanation)(explanation)(explanation)
+    proba = model.predict_proba(input_df)[0]
+    pred = model.predict(input_df)[0]
+    confidence = max(proba) * 100
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.success("Predicted Drug: " + str(pred) + " (" + str(round(confidence, 2)) + "% confidence)")
+
+    explanation = (
+        "The model predicted " + str(pred) + " because:\n"
+        "- Age: " + str(age) + "\n"
+        "- Sex: " + str(sex) + "\n"
+        "- BP: " + str(bp) + "\n"
+        "- Cholesterol: " + str(chol) + "\n"
+        "- Sodium (Na): " + str(na) + "\n"
+        "- Potassium (K): " + str(k)
+    )
+
+    st.info(explanation)
+
 
 # ---------------------------
 # Drug details
