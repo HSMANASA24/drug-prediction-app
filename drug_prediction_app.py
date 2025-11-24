@@ -27,19 +27,78 @@ with st.sidebar:
 # ----------------------
 base_css = """
 <style>
-body { background: linear-gradient(135deg, rgba(31,58,147,1) 0%, rgba(110,43,168,1) 40%, rgba(245,69,145,1) 100%); }
-section[data-testid="stSidebar"] { background-color: rgba(255,255,255,0.96) !important; color:#111 !important; }
-.glass-panel { backdrop-filter: blur(8px); background: rgba(255,255,255,0.12); border-radius:14px; padding:16px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.2); }
-.glass-panel-2 { backdrop-filter: blur(6px); background: rgba(0,0,0,0.18); border-radius:12px; padding:12px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.12); }
-h1,h2,h3,h4 { color:#eaf5ff !important; font-weight:700; }
-input, textarea, select { background: rgba(255,255,255,0.14) !important; color: #fff !important; border-radius:8px !important; border: 1px solid rgba(255,255,255,0.18) !important; font-weight:600 !important; }
-.stButton>button { background: rgba(255,255,255,0.12) !important; color:#fff !important; border-radius:10px; }
-table, th, td { color:white !important; font-weight:600 !important; }
+
+/* Background gradient */
+body {
+  background: linear-gradient(135deg, rgba(31,58,147,1) 0%, rgba(110,43,168,1) 40%, rgba(245,69,145,1) 100%);
+  background-attachment: fixed;
+}
+
+/* Sidebar (light) */
+section[data-testid="stSidebar"] {
+  background-color: rgba(255,255,255,0.97) !important;
+  color: #111 !important;
+}
+
+/* Glass Panels */
+.glass-panel, .glass-panel-2 {
+  backdrop-filter: blur(10px) saturate(160%);
+  background: rgba(255,255,255,0.65);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(0,0,0,0.12);
+  color: #111 !important;   /* Dark text */
+}
+
+/* TEXT — make everything dark & bold */
+html, body, div, p, span, label, input, select, textarea {
+  color: #111 !important;
+  font-weight: 700 !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5 {
+  color: #111 !important;
+  font-weight: 800 !important;
+}
+
+/* Input fields */
+input, textarea, select {
+  background: rgba(255,255,255,0.9) !important;
+  color: #111 !important;
+  border: 1px solid rgba(0,0,0,0.25) !important;
+  border-radius: 10px !important;
+}
+
+/* File uploader */
+div[data-testid="stFileUploader"] {
+  background: rgba(255,255,255,0.85) !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(0,0,0,0.25) !important;
+}
+
+/* Buttons */
+.stButton>button {
+  background: rgba(255,255,255,0.9) !important;
+  color: #111 !important;
+  font-weight: 700 !important;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.25);
+}
+.stButton>button:hover {
+  background: rgba(240,240,240,1) !important;
+  transform: translateY(-2px);
+}
+
+/* Table text */
+table, th, td {
+  color: #111 !important;
+  font-weight: 700 !important;
+}
+
 </style>
 """
-st.markdown(base_css, unsafe_allow_html=True)
-if mode == "Dark Mode":
-    st.markdown("<style>.glass-panel { background: rgba(0,0,0,0.36) !important; border:1px solid rgba(255,255,255,0.06); }</style>", unsafe_allow_html=True)
 
 # ----------------------
 # Header
