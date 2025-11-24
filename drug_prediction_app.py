@@ -5,18 +5,17 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 
-# --------------------------------------------------------------
-# Page Config
-# --------------------------------------------------------------
+# ---------------------------
+# Page config
+# ---------------------------
 st.set_page_config(page_title="Drug Prescription Classifier", page_icon="💊", layout="centered")
 
-# --------------------------------------------------------------
-# Sidebar (define first — required for mode)
-# --------------------------------------------------------------
+# ---------------------------
+# Sidebar (define first)
+# ---------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
     mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
-
     st.markdown("---")
     page = st.radio(
         "📄 Navigate",
@@ -24,103 +23,149 @@ with st.sidebar:
         key="page_selector"
     )
     st.markdown("---")
-    st.write("Customize your experience.")
+    st.write("Tip: Toggle theme or switch pages here.")
 
-# --------------------------------------------------------------
-# Base Light Theme CSS
-# --------------------------------------------------------------
-st.markdown("""
+# ---------------------------
+# Glassmorphism + Gradient CSS
+# ---------------------------
+# Gradient background for the whole app + glass panels for main content
+base_css = f"""
 <style>
-    .css-10trblm { text-align: center; }
+/* Page background gradient */
+body {{
+  background: linear-gradient(135deg, rgba(31,58,147,1) 0%, rgba(110,43,168,1) 40%, rgba(245,69,145,1) 100%);
+  background-attachment: fixed;
+}}
 
-    .stButton>button {
-        background-color: #4CAF50; 
-        color: white;
-        border-radius: 8px;
-        padding: 10px 20px;
-        border: none;
-        font-size: 18px;
-    }
-    .stButton>button:hover {
-        background-color: #45A049;
-    }
+/* Keep sidebar light to preserve contrast */
+section[data-testid="stSidebar"] {{
+  background: rgba(255,255,255,0.96) !important;
+  color: #111 !important;
+}}
 
-    label { font-weight: 600 !important; }
+/* Glass panel style for main content containers */
+.glass-panel {{
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+  padding: 18px;
+  margin-bottom: 18px;
+}
 
-    .block-container { padding-top: 2rem; }
+/* Card header accent */
+.glass-accent {{
+  border-left: 6px solid rgba(255,255,255,0.18);
+  padding-left: 12px;
+  margin-bottom: 12px;
+}}
+
+/* Secondary, slightly darker glass card (for contrast) */
+.glass-panel-2 {{
+  backdrop-filter: blur(6px);
+  background: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(255,255,255,0.02));
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 14px;
+  margin-bottom: 14px;
+}}
+
+/* Headings */
+h1,h2,h3,h4 {{
+  color: #eaf5ff;
+}}
+
+/* Make buttons look elevated and neon-accented */
+.stButton>button {{
+  background: rgba(255,255,255,0.08) !important;
+  color: #ffffff !important;
+  border-radius: 10px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}}
+.stButton>button:hover {{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+}}
+
+/* Inputs & selects inside the main area (glass-style) */
+input, textarea, select {
+  background: rgba(255,255,255,0.04) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 8px !important;
+}
+
+/* File uploader card */
+div[data-testid="stFileUploader"] {{
+  background: rgba(255,255,255,0.03) !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+}}
+
+/* Keep sidebar controls readable in light mode */
+section[data-testid="stSidebar"] .stRadio > div,
+section[data-testid="stSidebar"] .stSelectbox > div {{
+  color: #111 !important;
+}}
+
+/* Footer caption style */
+footer {{
+  visibility: hidden;
+}}
+
+/* Ensure tables in dark mode look clean */
+table, th, td {{
+  color: #eaf5ff !important;
+}}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {{
+  .glass-panel {{ padding: 12px; border-radius: 12px; }}
+}}
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(base_css, unsafe_allow_html=True)
 
-
-# --------------------------------------------------------------
-# Dark Mode (Sidebar stays LIGHT)
-# --------------------------------------------------------------
+# ---------------------------
+# Dark Mode tweaks (main area only)
+# ---------------------------
 if mode == "Dark Mode":
-    dark_css = """
+    dark_extra = """
     <style>
-        html, body, [class*="stApp"] {
-            background-color: #1e1e1e !important;
-            color: white !important;
-        }
-
-        /* Keep sidebar light */
-        section[data-testid="stSidebar"] * {
-            background-color: inherit !important;
-            color: inherit !important;
-        }
-
-        input, select, textarea {
-            background-color: #2d2d2d !important;
-            color: white !important;
-            border: 1px solid #444 !important;
-        }
-
-        div[data-baseweb="select"] div {
-            background-color: #2d2d2d !important;
-            color: white !important;
-        }
-
-        div[data-testid="stFileUploader"] {
-            background-color: #2d2d2d !important;
-            border-radius: 8px;
-        }
-
-        .stButton>button {
-            background-color: #444 !important;
-            color: white !important;
-        }
-        .stButton>button:hover {
-            background-color: #555 !important;
-        }
-
-        div[role="radiogroup"] label {
-            color: white !important;
-        }
-
-        .stAlert {
-            background-color: #2d2d2d !important;
-            color: white !important;
-        }
-
-        h1, h2, h3, h4, h5 {
-            color: #4CAF50 !important;
-        }
+    /* Intensify glass and reduce brightness for dark mode main area */
+    .glass-panel {
+      background: linear-gradient(135deg, rgba(10,10,10,0.36), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .glass-panel-2 {
+      background: linear-gradient(135deg, rgba(5,5,5,0.42), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    /* Inputs darker */
+    input, textarea, select {
+      background: rgba(255,255,255,0.02) !important;
+      color: #eaf5ff !important;
+      border: 1px solid rgba(255,255,255,0.06) !important;
+    }
     </style>
     """
-    st.markdown(dark_css, unsafe_allow_html=True)
+    st.markdown(dark_extra, unsafe_allow_html=True)
 
-
-# --------------------------------------------------------------
-# Header
-# --------------------------------------------------------------
-st.title("💊 Drug Prescription Classifier")
-st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", 
+# ---------------------------
+# Header (inside a glass panel)
+# ---------------------------
+st.markdown('<div class="glass-panel glass-accent"><h1 style="margin:6px 0;">💊 Drug Prescription Classifier</h1>'
+            '<p style="color:rgba(234,245,255,0.9); margin-top:6px;">AI-Powered Drug Prediction System — enter patient info or upload CSV.</p></div>',
             unsafe_allow_html=True)
 
-
-# --------------------------------------------------------------
-# Drug Emoji Icons (not real icons)
-# --------------------------------------------------------------
+# ---------------------------
+# Emoji icons (no real icons)
+# ---------------------------
 drug_images = {
     "drugA": "💊",
     "drugB": "🩺",
@@ -129,10 +174,9 @@ drug_images = {
     "drugY": "🩸"
 }
 
-
-# --------------------------------------------------------------
-# Drug Details
-# --------------------------------------------------------------
+# ---------------------------
+# Drug details
+# ---------------------------
 drug_details = {
     "drugA": {
         "name": "Drug A",
@@ -147,7 +191,7 @@ drug_details = {
         "use": "For high blood pressure.",
         "mechanism": "Relaxes blood vessels.",
         "side_effects": ["Low BP", "Fatigue"],
-        "precautions": "Not safe in pregnancy.",
+        "precautions": "Not suitable for pregnancy.",
         "dosage": "1 tablet/day."
     },
     "drugC": {
@@ -155,7 +199,7 @@ drug_details = {
         "use": "For electrolyte imbalance.",
         "mechanism": "Balances Na/K levels.",
         "side_effects": ["Nausea", "Stomach upset"],
-        "precautions": "Monitor Na/K regularly.",
+        "precautions": "Monitor Na/K levels regularly.",
         "dosage": "1–2 tablets/day."
     },
     "drugX": {
@@ -164,22 +208,21 @@ drug_details = {
         "mechanism": "Reduces cholesterol synthesis.",
         "side_effects": ["Muscle pain", "Weakness"],
         "precautions": "Avoid high-fat diet.",
-        "dosage": "Take in evening."
+        "dosage": "Take in the evening."
     },
     "drugY": {
         "name": "Drug Y",
         "use": "High BP + high cholesterol.",
-        "mechanism": "Reduces BP + cholesterol.",
+        "mechanism": "Lowers cholesterol synthesis and reduces BP.",
         "side_effects": ["Dizziness", "Muscle fatigue"],
         "precautions": "Check BP regularly.",
         "dosage": "1 tablet/day."
     }
 }
 
-
-# --------------------------------------------------------------
-# Sample Dataset
-# --------------------------------------------------------------
+# ---------------------------
+# Sample dataset
+# ---------------------------
 def load_sample_df():
     return pd.DataFrame([
         [23, 'F', 'HIGH', 'HIGH', 0.792535, 0.031258, 'drugY'],
@@ -190,10 +233,9 @@ def load_sample_df():
         [45, 'M', 'NORMAL', 'NORMAL', 0.700000, 0.050000, 'drugA']
     ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
 
-
-# --------------------------------------------------------------
-# Model Training
-# --------------------------------------------------------------
+# ---------------------------
+# Model training
+# ---------------------------
 @st.cache_resource
 def train_model(df):
     X = df[['Age','Sex','BP','Cholesterol','Na','K']]
@@ -215,13 +257,16 @@ def train_model(df):
     model.fit(X, y)
     return model
 
-
-# --------------------------------------------------------------
-# PAGE 1 → Predictor
-# --------------------------------------------------------------
+# ---------------------------
+# PREDICTOR PAGE
+# ---------------------------
 if page == "Predictor":
-    st.subheader("📂 Dataset")
+    st.markdown('<div class="glass-panel"><h3 style="margin:0 0 6px 0;">Predictor</h3>'
+                '<p style="margin:0 0 6px 0; color:rgba(234,245,255,0.9);">Single patient prediction</p></div>',
+                unsafe_allow_html=True)
 
+    # data upload (inside a second glass panel)
+    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
     uploaded = st.file_uploader("Upload CSV (optional)", type=['csv'])
     if uploaded:
         df = pd.read_csv(uploaded)
@@ -229,65 +274,72 @@ if page == "Predictor":
     else:
         df = load_sample_df()
         st.info("Using sample dataset.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     model = train_model(df)
 
-    st.subheader("🧪 Enter Patient Details")
+    # Input form in a glass-like block
+    with st.container():
+        st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+        st.subheader("🧪 Enter Patient Details")
+        col1, col2 = st.columns(2)
+        with col1:
+            age = st.number_input("Age", min_value=1, max_value=120, value=45)
+            sex = st.selectbox("Sex", ["F", "M"])
+            bp = st.selectbox("Blood Pressure (BP)", ["LOW", "NORMAL", "HIGH"])
+        with col2:
+            cholesterol = st.selectbox("Cholesterol", ["HIGH", "NORMAL"])
+            na = st.number_input("Sodium (Na)", value=0.70, format="%.4f")
+            k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("Age", 1, 120, 45)
-        sex = st.selectbox("Sex", ["F", "M"])
-        bp = st.selectbox("BP", ["LOW", "NORMAL", "HIGH"])
-    with col2:
-        cholesterol = st.selectbox("Cholesterol", ["HIGH", "NORMAL"])
-        na = st.number_input("Sodium (Na)", value=0.70, format="%.4f")
-        k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
+        if st.button("🔍 Predict Drug"):
+            input_df = pd.DataFrame([[age, sex, bp, cholesterol, na, k]],
+                                    columns=['Age','Sex','BP','Cholesterol','Na','K'])
+            prediction = model.predict(input_df)[0]
+            st.success(f"💊 Predicted Drug: **{prediction}**")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🔍 Predict Drug"):
-        input_df = pd.DataFrame([[age, sex, bp, cholesterol, na, k]],
-                                columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        pred = model.predict(input_df)[0]
-        st.success(f"💊 Predicted Drug: **{pred}**")
-
-
-# --------------------------------------------------------------
-# PAGE 2 → Drug Information
-# --------------------------------------------------------------
+# ---------------------------
+# DRUG INFORMATION PAGE
+# ---------------------------
 if page == "Drug Information":
+    st.markdown('<div class="glass-panel"><h3 style="margin:0 0 6px 0;">Drug Information</h3>'
+                '<p style="margin:0 0 6px 0; color:rgba(234,245,255,0.9);">Descriptions, side effects, dosage</p></div>',
+                unsafe_allow_html=True)
 
-    st.title("📘 Drug Information")
-
+    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
     drug_choice = st.selectbox("Select Drug", list(drug_details.keys()))
+    st.markdown('</div>', unsafe_allow_html=True)
+
     info = drug_details[drug_choice]
-
     icon = drug_images[drug_choice]
-    st.markdown(f"## {icon} {info['name']}")
 
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown(f"<h2 style='margin:4px 0 8px 0;'>{icon} {info['name']}</h2>", unsafe_allow_html=True)
     st.markdown("### 🧭 Use")
     st.write(info["use"])
-
     st.markdown("### 🔬 Mechanism")
     st.write(info["mechanism"])
-
     st.markdown("### ⚠️ Side Effects")
     for s in info["side_effects"]:
         st.markdown(f"- {s}")
-
     st.markdown("### 🔒 Precautions")
     st.write(info["precautions"])
-
     st.markdown("### 💉 Dosage")
     st.write(info["dosage"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
-
-# --------------------------------------------------------------
-# PAGE 3 → Bulk Prediction
-# --------------------------------------------------------------
+# ---------------------------
+# BULK PREDICTION PAGE
+# ---------------------------
 if page == "Bulk Prediction":
+    st.markdown('<div class="glass-panel"><h3 style="margin:0 0 6px 0;">Bulk Prediction</h3>'
+                '<p style="margin:0 0 6px 0; color:rgba(234,245,255,0.9);">Upload CSV and download predictions</p></div>',
+                unsafe_allow_html=True)
 
-    st.title("📂 Bulk Drug Prediction")
-    csv_file = st.file_uploader("Upload CSV for bulk prediction", type=['csv'])
+    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
+    csv_file = st.file_uploader("Upload CSV for bulk prediction", type=['csv'], key="bulk_csv")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if csv_file:
         bulk_df = pd.read_csv(csv_file)
@@ -301,6 +353,7 @@ if page == "Bulk Prediction":
         if missing:
             st.error(f"Missing columns: {missing}")
         else:
+            # Use existing train function (sample dataset used to train here)
             model = train_model(load_sample_df())
             bulk_df["Predicted_Drug"] = model.predict(bulk_df[required])
 
@@ -314,45 +367,28 @@ if page == "Bulk Prediction":
                 mime="text/csv"
             )
     else:
-        st.info("Upload a CSV file to start.")
+        st.info("Upload a CSV file (columns: Age, Sex, BP, Cholesterol, Na, K).")
 
-
-# --------------------------------------------------------------
-# PAGE 4 → About
-# --------------------------------------------------------------
+# ---------------------------
+# ABOUT PAGE
+# ---------------------------
 if page == "About":
+    st.markdown('<div class="glass-panel"><h3 style="margin:0 0 6px 0;">About</h3>'
+                '<p style="margin:0 0 6px 0; color:rgba(234,245,255,0.9);">What this app does & technologies used</p></div>',
+                unsafe_allow_html=True)
 
-    st.title("ℹ️ About This App")
-
+    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
     st.markdown("""
-    ### 💊 Drug Prescription Classifier  
-    This AI-powered system predicts drug types using patient information such as:
-
-    - Age  
-    - Sex  
-    - Blood Pressure  
-    - Cholesterol  
-    - Sodium  
-    - Potassium  
-
-    ### 🧠 Features  
-    - Single prediction  
-    - Drug Information  
-    - Bulk prediction  
-    - Dark/Light mode  
-
-    ### 🏗️ Built With  
-    - Streamlit  
-    - Scikit-Learn  
-    - Pandas  
-    - Python  
-
-    ### ❤️ Developer  
-    Created for healthcare learning and prediction insights.
+    ### 💊 Drug Prescription Classifier
+    Predicts drug type using patient info (Age, Sex, BP, Cholesterol, Na, K) with a small demo model.
     """)
+    st.markdown("#### Features included")
+    st.markdown("- Single prediction\n- Drug information\n- Bulk CSV prediction\n- Light/Dark theme\n- Glassmorphism UI")
+    st.markdown("#### Built with: Streamlit, Scikit-Learn, Pandas, Python")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --------------------------------------------------------------
+# ---------------------------
 # Footer
-# --------------------------------------------------------------
-st.markdown("---")
-st.caption("Built with ❤️ in Streamlit • Drug Predictor App")
+# ---------------------------
+st.markdown('<div style="margin-top:18px;"></div>', unsafe_allow_html=True)
+st.caption("Built with ❤️ in Streamlit • Glassmorphism Gradient Theme")
