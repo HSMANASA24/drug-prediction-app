@@ -175,12 +175,18 @@ if page == "Predictor":
         st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
 
         explanation = (
-            f"The model predicted **{pred}** because:\n"
-            f"- Age: {age}\n"
-            f"- Sex: {sex}\n"
-            f"- BP: {bp}\n"
-            f"- Cholesterol: {chol}\n"
-            f"- Sodium (Na): {na}\n"
+            f"The model predicted **{pred}** because:
+"
+            f"- Age: {age}
+"
+            f"- Sex: {sex}
+"
+            f"- BP: {bp}
+"
+            f"- Cholesterol: {chol}
+"
+            f"- Sodium (Na): {na}
+"
             f"- Potassium (K): {k}"
         )
         st.info(explanation)
@@ -194,11 +200,44 @@ drug_details = {
     "Atenolol": {
         "name": "Atenolol",
         "use": "Used for mild blood pressure control.",
-        "mechanism": "Beta‑blocker that reduces heart rate and BP.",
+        "mechanism": "Beta-blocker that reduces heart rate and BP.",
         "side_effects": ["Fatigue", "Cold extremities", "Dizziness"],
         "precautions": "Not recommended for asthma patients.",
         "dosage": "50 mg once daily."
     },
+    "Losartan": {
+        "name": "Losartan",
+        "use": "Used for high blood pressure.",
+        "mechanism": "ARB that relaxes blood vessels.",
+        "side_effects": ["Low BP", "Increased potassium", "Fatigue"],
+        "precautions": "Avoid in pregnancy.",
+        "dosage": "25–50 mg per day."
+    },
+    "ORS-K": {
+        "name": "ORS-K",
+        "use": "Corrects sodium–potassium imbalance.",
+        "mechanism": "Replenishes electrolytes and restores hydration.",
+        "side_effects": ["Nausea", "Stomach upset"],
+        "precautions": "Monitor Na/K levels.",
+        "dosage": "As required during dehydration or imbalance."
+    },
+    "Atorvastatin": {
+        "name": "Atorvastatin",
+        "use": "Used for high cholesterol.",
+        "mechanism": "Reduces cholesterol synthesis in the liver.",
+        "side_effects": ["Muscle pain", "Weakness", "Liver enzyme changes"],
+        "precautions": "Avoid high-fat diet; monitor liver function.",
+        "dosage": "10–20 mg in the evening."
+    },
+    "Amlodipine-Atorvastatin": {
+        "name": "Amlodipine-Atorvastatin",
+        "use": "Used for high BP and high cholesterol together.",
+        "mechanism": "Combines BP-lowering and cholesterol-lowering action.",
+        "side_effects": ["Muscle fatigue", "Dizziness", "Edema"],
+        "precautions": "Regular BP and cholesterol monitoring.",
+        "dosage": "1 tablet daily."
+    }
+},
     "Losartan": {
         "name": "Losartan",
         "use": "Used for high blood pressure.",
