@@ -170,20 +170,22 @@ if page == "Predictor":
     if st.button("Predict"):
         input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
         proba = model.predict_proba(input_df)[0]
-pred = model.predict(input_df)[0]
+        pred = model.predict(input_df)[0]
         confidence = max(proba) * 100
-st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
+        st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
 
-# Simple rule-based explanation
-explanation = f"The model predicted **{pred}** because:
-- Age: {age}
-- Sex: {sex}
-- BP: {bp}
-- Cholesterol: {chol}
-- Sodium: {na}
-- Potassium: {k}"
-st.info(explanation {pred}")
-    st.markdown('</div>', unsafe_allow_html=True)
+        explanation = (
+            f"The model predicted **{pred}** because:\n"
+            f"- Age: {age}\n"
+            f"- Sex: {sex}\n"
+            f"- BP: {bp}\n"
+            f"- Cholesterol: {chol}\n"
+            f"- Sodium (Na): {na}\n"
+            f"- Potassium (K): {k}"
+        )
+        st.info(explanation)
+
+    st.markdown('</div>', unsafe_allow_html=True)('</div>', unsafe_allow_html=True)
 
 # ---------------------------
 # Drug details
