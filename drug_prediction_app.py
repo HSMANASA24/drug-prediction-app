@@ -27,7 +27,7 @@ with st.sidebar:
 # Minimal CSS (glass + readability)
 # ----------------------
 # --------------------------------
-# CSS (must be BEFORE theme logic)
+# CLEAN CSS (Glassmorphism + titles bold only)
 # --------------------------------
 base_css = """
 <style>
@@ -43,7 +43,7 @@ section[data-testid="stSidebar"] {
     color:#111 !important;
 }
 
-/* Glass panels */
+/* Glass Panels */
 .glass-panel, .glass-panel-2 {
     backdrop-filter: blur(10px);
     background: rgba(255,255,255,0.65);
@@ -54,33 +54,57 @@ section[data-testid="stSidebar"] {
     color:#111 !important;
 }
 
-/* Text formatting */
-html, body, div, p, span, label {
+/* NORMAL TEXT */
+html, body, div, p, span, label, input, textarea, select {
     color:#111 !important;
-    font-weight:700 !important;
+    font-weight:400 !important;  /* Normal */
 }
 
-h1, h2, h3, h4 {
+/* ONLY TITLES BOLD */
+h1, h2, h3, h4, h5 {
     color:#111 !important;
-    font-weight:800 !important;
+    font-weight:800 !important;  /* Bold titles only */
 }
 
+/* Inputs */
+input, textarea, select {
+    background: rgba(255,255,255,0.9) !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(0,0,0,0.25) !important;
+}
+
+/* Buttons */
+.stButton>button {
+    background: rgba(255,255,255,0.9) !important;
+    color:#111 !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(0,0,0,0.25);
+    font-weight:600 !important;
+}
+
+.stButton>button:hover {
+    background: rgba(240,240,240,1) !important;
+    transform: translateY(-2px);
+}
+
+/* Tables */
+table, th, td {
+    color:#111 !important;
+    font-weight:400 !important;
+}
 </style>
 """
+st.markdown(base_css, unsafe_allow_html=True)
+
 
 # -------------------------
 # SINGLE SIDEBAR (Only One)
 # -------------------------
+# -------------------------
+# SINGLE SIDEBAR (NO THEME MODE)
+# -------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
-
-    mode = st.radio(
-        "🌗 Theme Mode",
-        ["Light Mode", "Dark Mode"],
-        key="theme_select"
-    )
-
-    st.markdown("---")
 
     page = st.radio(
         "📄 Navigate",
@@ -92,41 +116,18 @@ with st.sidebar:
     st.write("Use sidebar to switch pages or theme.")
 
 
-
 # -------------------------
 # APPLY LIGHT MODE
 # -------------------------
-st.markdown(base_css, unsafe_allow_html=True)
+st.markdown("""
+<div class="glass-panel" style="text-align:center;">
+    <h1>💊 Drug Prescription Classifier</h1>
+    <p style="color:#111; font-weight:600; margin-top:6px; font-size:18px;">
+        Predict drugs, explain why, generate reports, and monitor usage.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-# -------------------------
-# APPLY DARK MODE OVERRIDE
-# -------------------------
-if mode == "Dark Mode":
-    st.markdown("""
-    <style>
-        body {
-            background: linear-gradient(135deg, #0d0d0d, #1c1c1c, #333333) !important;
-        }
-        .glass-panel, .glass-panel-2 {
-            background: rgba(0,0,0,0.55) !important;
-            color: #fefefe !important;
-        }
-        html, body, div, p, span, label {
-            color:#fefefe !important;
-        }
-        h1,h2,h3,h4 {
-            color:#fefefe !important;
-        }
-        input, select, textarea {
-            background: rgba(255,255,255,0.12) !important;
-            color:#fff !important;
-        }
-        .stButton>button {
-            background: rgba(255,255,255,0.2) !important;
-            color:#fff !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 # ----------------------
 # Emoji icons & drug info
