@@ -14,8 +14,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Dark mode toggle
-mode = st.sidebar.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"])
+
 
 # --------------------------------------------------------------
 # Custom CSS Theme Enhancements
@@ -121,9 +120,10 @@ st.write("Upload your dataset or use the built-in sample data to predict drug ty
 
 with st.sidebar:
     st.header("⚙️ Settings")
-    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"])
+    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
     st.markdown("---")
     st.write("Customize the look and feel of the app.")
+
 
 
 # --------------------------------------------------------------
