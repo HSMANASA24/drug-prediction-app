@@ -183,21 +183,15 @@ if page == "Predictor":
         st.success(f"Predicted Drug: {pred} ({confidence:.2f}% confidence)")
 
         explanation = (
-            "The model predicted " + str(pred) + " because:
-"
-            "- Age: " + str(age) + "
-"
-            "- Sex: " + str(sex) + "
-"
-            "- BP: " + str(bp) + "
-"
-            "- Cholesterol: " + str(chol) + "
-"
-            "- Sodium (Na): " + str(na) + "
-"
-            "- Potassium (K): " + str(k) + "
-"
-        )
+    f"The model predicted **{pred}** because:\n"
+    f"- Age: {age}\n"
+    f"- Sex: {sex}\n"
+    f"- BP: {bp}\n"
+    f"- Cholesterol: {chol}\n"
+    f"- Sodium (Na): {na}\n"
+    f"- Potassium (K): {k}"
+)
+
         st.info(explanation)(explanation)(explanation)(explanation)(explanation)
 
     st.markdown('</div>', unsafe_allow_html=True)
