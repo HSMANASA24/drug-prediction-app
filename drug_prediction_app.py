@@ -14,6 +14,9 @@ st.set_page_config(
     layout="centered"
 )
 
+# Dark mode toggle
+mode = st.sidebar.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"])
+
 # --------------------------------------------------------------
 # Custom CSS Theme Enhancements
 # --------------------------------------------------------------
@@ -57,6 +60,57 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
+# Apply theme based on selection
+if mode == "Dark Mode":
+    dark_css = """
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+        }
+        .css-18e3th9, .css-1pahdxg {
+            background-color: #1e1e1e !important;
+            color: white !important;
+        }
+        .stButton>button {
+            background-color: #444444 !important;
+            color: white !important;
+            border-radius: 8px;
+        }
+        .stButton>button:hover {
+            background-color: #555555 !important;
+        }
+        .css-10trblm {
+            color: #4CAF50 !important;
+        }
+        .stSuccess {
+            background-color: #2d2d2d !important;
+            color: white !important;
+        }
+        .stTextInput>div>div>input {
+            background-color: #2d2d2d !important;
+            color: white !important;
+        }
+        .stSelectbox>div>div {
+            background-color: #2d2d2d !important;
+            color: white !important;
+        }
+    </style>
+    """
+    st.markdown(dark_css, unsafe_allow_html=True)
+else:
+    light_css = """
+    <style>
+        body {
+            background-color: white;
+            color: black;
+        }
+    </style>
+    """
+    st.markdown(light_css, unsafe_allow_html=True)
+
+
 # --------------------------------------------------------------
 # App Header
 # --------------------------------------------------------------
@@ -64,6 +118,13 @@ st.title("💊 Drug Prescription Classifier")
 st.markdown("<h4 style='text-align:center; color:#4CAF50;'>AI-Powered Drug Prediction System</h4>", unsafe_allow_html=True)
 
 st.write("Upload your dataset or use the built-in sample data to predict drug types.")
+
+with st.sidebar:
+    st.header("⚙️ Settings")
+    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"])
+    st.markdown("---")
+    st.write("Customize the look and feel of the app.")
+
 
 # --------------------------------------------------------------
 # Sample Dataset
