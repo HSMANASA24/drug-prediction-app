@@ -50,7 +50,7 @@ body {
 /* Sidebar stays white */
 section[data-testid="stSidebar"] {
   background-color: rgba(255,255,255,0.97) !important;
-  color:#111 !important;
+  color:#000 !important;
 }
 
 /* Glass Panels */
@@ -61,18 +61,18 @@ section[data-testid="stSidebar"] {
   padding: 18px;
   margin-bottom: 20px;
   border: 1px solid rgba(0,0,0,0.12);
-  color:#111 !important;
+  color:#000 !important;
 }
 
 /* NORMAL TEXT */
 html, body, div, p, span, label, input, textarea, select {
-  color:#111 !important;
+  color:#000 !important;
   font-weight:400 !important;
 }
 
 /* ONLY TITLES BOLD */
 h1, h2, h3, h4, h5 {
-  color:#111 !important;
+  color:#000 !important;
   font-weight:800 !important;
 }
 
@@ -86,7 +86,7 @@ input, textarea, select {
 /* Buttons */
 .stButton>button {
   background: rgba(255,255,255,0.9) !important;
-  color:#111 !important;
+  color:#000 !important;
   border-radius: 10px !important;
   border: 1px solid rgba(0,0,0,0.25);
   font-weight:600 !important;
@@ -99,7 +99,7 @@ input, textarea, select {
 
 /* Tables */
 table, th, td {
-  color:#111 !important;
+  color:#000 !important;
   font-weight:400 !important;
 }
 </style>
@@ -109,7 +109,7 @@ table, th, td {
 dark_css = """
 <style>
 body { background-color: #1c1c1c !important; color: #ffffff !important; }
-section[data-testid="stSidebar"] { background-color: rgba(255,255,255,0.97) !important; color: #111 !important; }
+section[data-testid="stSidebar"] { background-color: rgba(255,255,255,0.97) !important; color: #000 !important; }
 .glass-panel, .glass-panel-2 { backdrop-filter: blur(12px); background: rgba(40,40,40,0.55) !important; border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.08); color:#ffffff !important; }
 html, body, div, p, span, label { color:#ffffff !important; font-weight:400 !important; }
 h1, h2, h3, h4 { font-weight:800 !important; color:#ffffff !important; }
@@ -336,7 +336,7 @@ if theme_choice == 'Dark Mode':
 st.markdown("""
 <div class="glass-panel" style="text-align:center;">
     <h1>💊 Drug Prescription Classifier</h1>
-    <p style="color:#111; font-weight:600; margin-top:6px; font-size:18px;">Predict drugs, explain why, generate reports, and monitor usage.</p>
+    <p style="color:#000; font-weight:600; margin-top:6px; font-size:18px;">Predict drugs, explain why, generate reports, and monitor usage.</p>
 </div>
 """, unsafe_allow_html=True)
 
