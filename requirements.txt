@@ -4,3 +4,4 @@ pandas
 joblib
 seaborn
 matplotlib
+reportlab
