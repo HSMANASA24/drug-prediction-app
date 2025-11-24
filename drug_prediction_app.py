@@ -105,14 +105,14 @@ def login_page():
         reset_btn = st.button("Clear")
 
     if reset_btn:
-        st.experimental_rerun()
+        st.rerun()
 
     if login_btn:
-        # Simple login – no hashing
+        # Plain-text login (no hashing)
         if user in USERS and USERS[user] == pwd:
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Invalid username or password")
 
@@ -138,7 +138,7 @@ with st.sidebar:
     if st.button("Logout"):
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
-        st.experimental_rerun()
+        st.rerun()
 
 if theme_choice == "Dark Mode":
     st.markdown(DARK_CSS, unsafe_allow_html=True)
