@@ -1,14 +1,10 @@
-# app.py - Smart Drug Shield (FINAL)
-# Multi-user hashed login (no OTP), loads dataset from local /mnt/data/Drug.csv if present,
-# otherwise falls back to the GitHub RAW URL you provided earlier.
-# Includes multiple ML models, confidence, top-3, and drug information.
-
+# app.py - Smart Drug Shield (AI Healthcare Dashboard - Soft Medical Glow)
 import streamlit as st
 import pandas as pd
 import numpy as np
-import hashlib
-import secrets
 import os
+import secrets
+from datetime import datetime
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -19,7 +15,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-# Optional boosters (will be used only if installed)
+# Optional boosters (safe import)
 HAS_XGB = True
 HAS_LGB = True
 try:
@@ -32,86 +28,90 @@ try:
 except Exception:
     HAS_LGB = False
 
-# -------------------------------------------------
-# App config & title
-# -------------------------------------------------
+# -------------------------
+# App config
+# -------------------------
 st.set_page_config(page_title="🛡 Smart Drug Shield", page_icon="💊", layout="centered")
+
+# Header (large, visible)
 st.markdown("""
-    <h1 style='text-align:center; font-size:40px; font-weight:900; margin-top:-10px;'>
+    <div style="width:100%; text-align:center; padding-top:8px; padding-bottom:4px;">
+      <h1 style="margin:0; color:#003366; font-size:42px; font-weight:900;">
         🛡 Smart Drug Shield
-    </h1>
+      </h1>
+      <p style="margin:0; color:#0066cc; font-weight:600;">AI-powered drug prescription classifier — Medical theme</p>
+    </div>
 """, unsafe_allow_html=True)
 
-# -------------------------------------------------
-# Simple CSS for glass effect and theme
-# -------------------------------------------------
-BASE_CSS = """
+# -------------------------
+# Medical theme CSS (Soft Medical Glow)
+# -------------------------
+CSS = """
 <style>
-.glass-panel { backdrop-filter: blur(6px); background: rgba(255,255,255,0.92); border-radius:12px; padding:14px; margin-bottom:16px; }
-h1,h2,h3,h4 { font-weight:800; }
-.stButton>button { border-radius:8px !important; padding:8px 12px !important; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+html, body, [class*="css"]  { font-family: Inter, sans-serif; background: #F7F9FC; }
+.glass { background: rgba(255,255,255,0.85); border-radius:14px; padding:18px; box-shadow: 0 6px 20px rgba(0,77,153,0.08); border:1px solid rgba(0,77,153,0.06); }
+.header-gradient {
+  background: linear-gradient(90deg, rgba(0,123,255,0.12), rgba(40,199,111,0.08));
+  padding:12px; border-radius:12px;
+}
+.stButton>button { background: linear-gradient(90deg,#007BFF,#28C76F); color:white; border:none; padding:10px 18px; font-weight:700; border-radius:10px; box-shadow: 0 6px 18px rgba(34,139,230,0.12); }
+.stButton>button:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(34,139,230,0.18); }
+input, textarea, select { border-radius:10px; padding:8px; border:1px solid rgba(0,0,0,0.08); }
+h2 { color:#003366; font-weight:800; }
+.small-muted { color:#56677a; font-size:13px; }
+.metric-card { border-radius:12px; padding:12px; background: white; box-shadow: 0 6px 18px rgba(2, 62, 138, 0.04); border:1px solid rgba(0,0,0,0.04); }
+.tag { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700; color:#fff; }
+.tag-blue { background: #007BFF; }
+.tag-green { background: #28C76F; }
+.conf-bar { height:12px; border-radius:8px; background: linear-gradient(90deg,#28C76F,#007BFF); }
 </style>
 """
-DARK_CSS = """
-<style>
-.glass-panel { background: rgba(20,20,25,0.6) !important; color: #fff !important; }
-h1,h2,h3,h4 { color: #eaf2ff !important; }
-.stButton>button { color:#fff !important; }
-</style>
-"""
-st.markdown(BASE_CSS, unsafe_allow_html=True)
+st.markdown(CSS, unsafe_allow_html=True)
 
-# -------------------------------------------------
-# Users with hashed passwords (SHA-256 + salt)
-# Provided user list (confirmed by you):
-# admin, Admin@123
-# manasa, Manasa@2005
-# doctor, Doctor@123
-# student, Student@123
-# -------------------------------------------------
-# -----------------------------
-# User Authentication (Updated)
-# -----------------------------
-
-
+# -------------------------
+# Simple plain-text USERS (no hashing)
+# -------------------------
 USERS = {
     "admin": "Admin@123",
     "manasa": "Manasa@2005",
     "doctor": "Doctor@123",
     "student": "Student@123"
 }
-# -------------------------------------------------
-# Authentication (simple username + password)
-# -------------------------------------------------
+
+# -------------------------
+# Session defaults
+# -------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "username" not in st.session_state:
     st.session_state["username"] = None
 
-# -----------------------------------
-# Login Page
-# -----------------------------------
+# -------------------------
+# LOGIN PAGE (plain-text)
+# -------------------------
 def login_page():
-    st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
-    st.subheader("🔒 Login")
-
+    st.markdown('<div class="glass" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
+    st.subheader("🔒 Admin Login")
+    st.write("Enter your username and password to continue.")
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
-    col1, col2 = st.columns([1,1])
-    with col1:
-        login_btn = st.button("Login")
-    with col2:
-        reset_btn = st.button("Clear")
+    c1, c2 = st.columns([1,1])
+    with c1:
+        btn_login = st.button("Login")
+    with c2:
+        btn_clear = st.button("Clear")
 
-    if reset_btn:
+    if btn_clear:
+        # rerun to clear inputs
         st.rerun()
 
-    if login_btn:
-        # Plain-text login (no hashing)
+    if btn_login:
         if user in USERS and USERS[user] == pwd:
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
+            st.success(f"Welcome, {user} — logging you in...")
             st.rerun()
         else:
             st.error("Invalid username or password")
@@ -119,48 +119,43 @@ def login_page():
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-
-# -----------------------------------
-# Require login before showing pages
-# -----------------------------------
-if not st.session_state.get("authenticated", False):
+# require login
+if not st.session_state["authenticated"]:
     login_page()
 
-# -------------------------------------------------
-# Sidebar: navigation & theme
-# -------------------------------------------------
+# -------------------------
+# Sidebar (no dark mode)
+# -------------------------
 with st.sidebar:
+    st.markdown('<div class="header-gradient">', unsafe_allow_html=True)
     st.header(f"Welcome, {st.session_state.get('username')}")
-    theme_choice = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], index=0)
+    st.markdown('</div>', unsafe_allow_html=True)
+
     page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Admin", "About"], index=0)
     st.markdown("---")
-    st.markdown("Data source: either local `/mnt/data/Drug.csv` (if present) or GitHub RAW")
+    st.markdown("**Data source:** local `/mnt/data/Drug.csv` (fallback to GitHub RAW if not found)")
+    st.markdown("**Theme:** Medical (Blue + Green + White)")
+    st.markdown("---")
     if st.button("Logout"):
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
         st.rerun()
 
-if theme_choice == "Dark Mode":
-    st.markdown(DARK_CSS, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# Dataset loading: try local path first, else GitHub RAW
-# (Developer note: local path seen in conversation: /mnt/data/Drug.csv)
-# Raw GitHub URL (user provided earlier)
-# -------------------------------------------------
-LOCAL_PATH = "/mnt/data/Drug.csv"
+# -------------------------
+# Data loading (local path primary)
+# -------------------------
+LOCAL_PATH = "/mnt/data/Drug.csv"   # <- local path used in this session (will be used as file URL if present)
 GITHUB_RAW = "https://raw.githubusercontent.com/HSMANASA24/drug-prediction-app/c476f30acf26ddc14b6b4a7eb796786c23a23edd/Drug.csv"
 
 @st.cache_data
 def load_dataset():
-    # prefer uploaded local file if exists ( Streamlit Cloud might not have it )
     if os.path.exists(LOCAL_PATH):
         df = pd.read_csv(LOCAL_PATH)
+        source = LOCAL_PATH
     else:
         df = pd.read_csv(GITHUB_RAW)
-    # Ensure consistent columns
+        source = GITHUB_RAW
     df.columns = [c.strip() for c in df.columns]
-    # Map dataset codes to user-chosen real names (Option B)
     mapping = {
         "drugA": "Amlodipine",
         "drugB": "Atenolol",
@@ -170,19 +165,20 @@ def load_dataset():
     }
     if "Drug" in df.columns:
         df["Drug"] = df["Drug"].map(mapping).fillna(df["Drug"])
-    return df
+    return df, source
 
 try:
-    df_full = load_dataset()
+    df_full, DATA_SOURCE = load_dataset()
 except Exception as e:
     st.error("Failed to load dataset: " + str(e))
     st.stop()
 
 st.sidebar.markdown(f"Rows: **{df_full.shape[0]}**  |  Columns: **{df_full.shape[1]}**")
+st.sidebar.markdown(f"Source: `{DATA_SOURCE}`")
 
-# -------------------------------------------------
-# Drug details (as requested)
-# -------------------------------------------------
+# -------------------------
+# Drug information dictionary
+# -------------------------
 drug_details = {
     "Amlodipine": {
         "use": "Lowers blood pressure by relaxing blood vessels (calcium channel blocker).",
@@ -221,28 +217,27 @@ drug_details = {
     }
 }
 
-# -------------------------------------------------
-# ML training helper
-# -------------------------------------------------
-# handle OneHotEncoder param compatibility
-def onehot_encoder_factory():
-    # sklearn >=1.2 uses sparse_output, earlier versions use sparse
+# -------------------------
+# OneHotEncoder compatibility helper
+# -------------------------
+def onehot_factory():
     try:
         return OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     except TypeError:
         return OneHotEncoder(sparse=False, handle_unknown='ignore')
 
+# -------------------------
+# Train models helper
+# -------------------------
 @st.cache_resource
 def build_and_train(model_name: str, df: pd.DataFrame):
-    df = df.dropna().copy()
-    X = df[['Age','Sex','BP','Cholesterol','Na','K']]
-    y = df['Drug']
-
-    preprocessor = ColumnTransformer([
+    dfc = df.dropna().copy()
+    X = dfc[['Age','Sex','BP','Cholesterol','Na','K']]
+    y = dfc['Drug']
+    pre = ColumnTransformer([
         ("num", StandardScaler(), ['Age','Na','K']),
-        ("cat", onehot_encoder_factory(), ['Sex','BP','Cholesterol'])
+        ("cat", onehot_factory(), ['Sex','BP','Cholesterol'])
     ])
-
     models = {
         "Logistic Regression": LogisticRegression(max_iter=2000),
         "KNN": KNeighborsClassifier(),
@@ -256,47 +251,43 @@ def build_and_train(model_name: str, df: pd.DataFrame):
         models["LightGBM"] = LGBMClassifier()
 
     if model_name not in models:
-        raise ValueError("Unknown model: " + str(model_name))
-
-    pipe = Pipeline([("pre", preprocessor), ("clf", models[model_name])])
+        raise ValueError("Unknown model.")
+    pipe = Pipeline([("pre", pre), ("clf", models[model_name])])
     pipe.fit(X, y)
     return pipe
 
-# -------------------------------------------------
+# -------------------------
 # Predictor page
-# -------------------------------------------------
+# -------------------------
 if page == "Predictor":
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.subheader("Single Prediction")
+    st.markdown('<div class="small-muted">Enter patient details to predict the most suitable drug. Models trained on the dataset loaded above.</div>', unsafe_allow_html=True)
 
-    available_models = ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM"]
-    if HAS_XGB:
-        available_models.append("XGBoost")
-    if HAS_LGB:
-        available_models.append("LightGBM")
+    models_list = ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM"]
+    if HAS_XGB: models_list.append("XGBoost")
+    if HAS_LGB: models_list.append("LightGBM")
+    model_choice = st.selectbox("Select model", models_list, index=0)
 
-    model_choice = st.selectbox("Select Model", available_models, index=0)
-
-    with st.spinner("Training model on dataset..."):
+    with st.spinner("Training model..."):
         try:
             model = build_and_train(model_choice, df_full)
         except Exception as e:
             st.error("Training failed: " + str(e))
             st.stop()
 
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=45)
+    c1, c2 = st.columns(2)
+    with c1:
+        age = st.number_input("Age", 1, 120, 45)
         sex = st.selectbox("Sex", ["F","M"])
         bp = st.selectbox("Blood Pressure (BP)", ["LOW","NORMAL","HIGH"])
-    with col2:
+    with c2:
         chol = st.selectbox("Cholesterol", ["HIGH","NORMAL"])
         na = st.number_input("Sodium (Na)", format="%.6f", value=0.700000)
         k = st.number_input("Potassium (K)", format="%.6f", value=0.050000)
 
     if st.button("Predict"):
         input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-
         try:
             pred = model.predict(input_df)[0]
         except Exception as e:
@@ -312,58 +303,59 @@ if page == "Predictor":
         if pred is not None:
             if proba is not None:
                 sorted_idx = np.argsort(proba)[::-1]
-                top1_idx = int(sorted_idx[0])
-                top1_label = model.classes_[top1_idx]
-                top1_conf = float(proba[top1_idx]) * 100.0
-                st.success(f"Predicted Drug: {top1_label} ({top1_conf:.2f}% confidence)")
+                top_idx = int(sorted_idx[0])
+                top_label = model.classes_[top_idx]
+                top_conf = float(proba[top_idx]) * 100.0
+
+                st.success(f"Predicted Drug: {top_label}  —  {top_conf:.2f}% confidence")
+                # Confidence bar
+                st.markdown("<div style='margin-top:8px; margin-bottom:8px;'><div style='width:100%; background:#eceff5; border-radius:8px; height:14px;'><div style='width:{}%; background:linear-gradient(90deg,#28C76F,#007BFF); height:100%; border-radius:8px;'></div></div></div>".format(min(max(top_conf,0),100)), unsafe_allow_html=True)
 
                 st.write("Top predictions:")
                 for i in range(min(3, len(sorted_idx))):
                     idx = int(sorted_idx[i])
                     label = model.classes_[idx]
-                    prob_pct = proba[idx] * 100.0
-                    st.write(f"{i+1}. {label} — {prob_pct:.2f}%")
-
-                if top1_conf >= 80:
+                    pval = proba[idx] * 100.0
+                    st.write(f"{i+1}. **{label}** — {pval:.2f}%")
+                # confidence message
+                if top_conf >= 80:
                     st.info("Confidence: High ✅")
-                elif top1_conf >= 60:
+                elif top_conf >= 60:
                     st.info("Confidence: Moderate ⚠️")
-                elif top1_conf >= 40:
+                elif top_conf >= 40:
                     st.warning("Confidence: Low ⚠️ Consider review")
                 else:
                     st.error("Confidence: Very Low ❌ Seek further checks")
             else:
                 st.success("Predicted Drug: " + str(pred))
-                st.info("Selected algorithm does not provide probabilities.")
+                st.info("Selected algorithm does not support probabilities.")
 
+            # short explanation
             explanation = (
-                "The model predicted " + str(pred) + " because:\n"
-                "- Age: " + str(age) + "\n"
-                "- Sex: " + str(sex) + "\n"
-                "- BP: " + str(bp) + "\n"
-                "- Cholesterol: " + str(chol) + "\n"
-                "- Sodium (Na): " + str(na) + "\n"
-                "- Potassium (K): " + str(k)
+                f"The model predicted {pred} based on the following input:\n"
+                f"- Age: {age}\n- Sex: {sex}\n- BP: {bp}\n- Cholesterol: {chol}\n- Sodium (Na): {na}\n- Potassium (K): {k}"
             )
+            st.markdown("**Why this prediction?**")
             st.info(explanation)
 
+            # show drug info
             if pred in drug_details:
                 dd = drug_details[pred]
                 st.markdown("---")
-                st.markdown(f"### About {pred}")
-                st.markdown(f"**Use:** {dd['use']}")
+                st.markdown(f"<div class='metric-card'><h3 style='margin:0;color:#003366'>{pred}</h3><p class='small-muted' style='margin:0'>{dd['use']}</p></div>", unsafe_allow_html=True)
                 st.markdown(f"**Mechanism:** {dd['mechanism']}")
                 st.markdown(f"**Side Effects:** {', '.join(dd['side_effects'])}")
                 st.markdown(f"**Precautions:** {dd['precautions']}")
                 st.markdown(f"**Dosage:** {dd['dosage']}")
         st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------
+# -------------------------
 # Drug Information page
-# -------------------------------------------------
+# -------------------------
 if page == "Drug Information":
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.subheader("💊 Drug Information")
+    st.write("Detailed descriptions of drugs available in the model.")
     for name, info in drug_details.items():
         with st.expander(f"📌 {name}"):
             st.markdown(f"**Use:** {info['use']}")
@@ -373,17 +365,17 @@ if page == "Drug Information":
             st.markdown(f"**Dosage:** {info['dosage']}")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------
-# Admin page
-# -------------------------------------------------
+# -------------------------
+# Admin page (in-memory users)
+# -------------------------
 if page == "Admin":
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.subheader("👤 Admin — User Management (in-memory)")
     st.write("Current users:")
     for u in USERS.keys():
         st.write("•", u)
     st.markdown("---")
-    st.write("### Add New User (in-memory)")
+    st.write("### Add new user (in-memory)")
     new_user = st.text_input("Username", key="add_user")
     new_pass = st.text_input("Password", type="password", key="add_pass")
     if st.button("Add User"):
@@ -392,34 +384,36 @@ if page == "Admin":
         elif new_user in USERS:
             st.error("User already exists.")
         else:
-            USERS[new_user] = hash_password(new_pass)
+            USERS[new_user] = new_pass
             st.success("User added (in-memory).")
-            st.experimental_rerun()
+            st.rerun()
     st.markdown("---")
-    st.write("### Remove User")
-    remove_user = st.selectbox("Select user to remove", list(USERS.keys()), key="remove_user_select")
-    if st.button("Remove User"):
-        if remove_user == "admin":
-            st.error("Cannot remove main admin.")
-        else:
+    st.write("### Remove user")
+    removable = [u for u in USERS.keys() if u != "admin"]
+    if removable:
+        remove_user = st.selectbox("Select user to remove", removable, key="remove_user")
+        if st.button("Remove User"):
             USERS.pop(remove_user, None)
             st.success("User removed.")
-            st.experimental_rerun()
+            st.rerun()
+    else:
+        st.info("No removable users.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------------------------------
+# -------------------------
 # About page
-# -------------------------------------------------
+# -------------------------
 if page == "About":
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.subheader("ℹ️ About Smart Drug Shield")
-    st.markdown("""
-    Smart Drug Shield is an educational demo that trains classification models to predict an appropriate drug
-    given patient features (Age, Sex, BP, Cholesterol, Na, K). The dataset is loaded from your repository
-    (GitHub RAW) or from local `/mnt/data/Drug.csv` if present.
-
-    **Notes**
-    - Drug labels from CSV are mapped to clinical names.
-    - This is for demonstration / learning and not a clinical decision tool.
+    st.markdown(f"""
+    **Smart Drug Shield** is an educational demo: an AI-driven drug prescription classifier built for learning and demonstration.
+    - Dataset loaded from: `{DATA_SOURCE}`
+    - Models available: Logistic Regression, KNN, Decision Tree, Random Forest, SVM {(' + XGBoost' if HAS_XGB else '')}{(' + LightGBM' if HAS_LGB else '')}
+    - Designed with a medical AI theme (blue + green + white).
     """)
     st.markdown('</div>', unsafe_allow_html=True)
+
+# -------------------------
+# --- End of app.py ---
+# -------------------------
