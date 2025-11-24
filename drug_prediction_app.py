@@ -69,66 +69,60 @@ st.markdown("""
 if mode == "Dark Mode":
     dark_css = """
     <style>
-        /* Main background */
-        html, body, [class*="css"]  {
+        /* MAIN PAGE DARK */
+        html, body, [class*="stApp"] {
             background-color: #1e1e1e !important;
             color: #ffffff !important;
         }
 
-        /* Sidebar */
-        section[data-testid="stSidebar"] {
-            background-color: #252525 !important;
+        /* DO NOT TOUCH SIDEBAR (keep default light) */
+        section[data-testid="stSidebar"] * {
+            background-color: inherit !important;
+            color: inherit !important;
         }
 
-        /* Text Input, Number Input, Selectbox */
+        /* Widgets (inputs, selects) */
         input, select, textarea {
             background-color: #2d2d2d !important;
             color: #ffffff !important;
             border: 1px solid #444444 !important;
         }
 
-        /* Streamlit containers & cards */
-        .stMarkdown, .stTextInput, .stNumberInput, .stSelectbox, .stFileUploader {
-            color: #ffffff !important;
-        }
-
-        /* File uploader background */
-        div[data-testid="stFileUploader"] {
-            background-color: #2d2d2d !important;
-            border-radius: 8px;
-            padding: 8px;
-        }
-
-        /* Buttons */
-        .stButton>button {
-            background-color: #444444 !important;
-            color: white !important;
-            border-radius: 8px;
-        }
-
-        .stButton>button:hover {
-            background-color: #555555 !important;
-        }
-
-        /* Radio Buttons */
-        div[role="radiogroup"] label {
-            color: white !important;
-        }
-
-        /* Selectbox inside container */
+        /* Selectbox internal styling */
         div[data-baseweb="select"] div {
             background-color: #2d2d2d !important;
             color: white !important;
         }
 
-        /* Success / warning boxes */
+        /* File uploader */
+        div[data-testid="stFileUploader"] {
+            background-color: #2d2d2d !important;
+            border-radius: 8px;
+        }
+
+        /* Buttons */
+        .stButton > button {
+            background-color: #444444 !important;
+            color: #ffffff !important;
+        }
+        .stButton > button:hover {
+            background-color: #555555 !important;
+        }
+
+        /* Radio/checkbox labels */
+        div[role="radiogroup"] label,
+        .stCheckbox label {
+            color: white !important;
+        }
+
+        /* Success / info / warning boxes */
         .stAlert {
             background-color: #2d2d2d !important;
             color: white !important;
         }
 
-        /* Title colors */
-        h1, h2, h3, h4 {
+        /* Titles */
+        h1, h2, h3, h4, h5, h6 {
             color: #4CAF50 !important;
         }
     </style>
