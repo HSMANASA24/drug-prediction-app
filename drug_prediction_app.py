@@ -25,93 +25,47 @@ with st.sidebar:
 # ----------------------
 # Minimal CSS (glass + readability)
 # ----------------------
-base_css = """
-<style>
-
-/* Background gradient */
-body {
-  background: linear-gradient(135deg, rgba(31,58,147,1) 0%, rgba(110,43,168,1) 40%, rgba(245,69,145,1) 100%);
-  background-attachment: fixed;
-}
-
-/* Sidebar (light) */
-section[data-testid="stSidebar"] {
-  background-color: rgba(255,255,255,0.97) !important;
-  color: #111 !important;
-}
-
-/* Glass Panels */
-.glass-panel, .glass-panel-2 {
-  backdrop-filter: blur(10px) saturate(160%);
-  background: rgba(255,255,255,0.65);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(0,0,0,0.12);
-  color: #111 !important;   /* Dark text */
-}
-
-/* TEXT — make everything dark & bold */
-html, body, div, p, span, label, input, select, textarea {
-  color: #111 !important;
-  font-weight: 700 !important;
-}
-
-/* Headings */
-h1, h2, h3, h4, h5 {
-  color: #111 !important;
-  font-weight: 800 !important;
-}
-
-/* Input fields */
-input, textarea, select {
-  background: rgba(255,255,255,0.9) !important;
-  color: #111 !important;
-  border: 1px solid rgba(0,0,0,0.25) !important;
-  border-radius: 10px !important;
-}
-
-/* File uploader */
-div[data-testid="stFileUploader"] {
-  background: rgba(255,255,255,0.85) !important;
-  border-radius: 10px !important;
-  border: 1px solid rgba(0,0,0,0.25) !important;
-}
-
-/* Buttons */
-.stButton>button {
-  background: rgba(255,255,255,0.9) !important;
-  color: #111 !important;
-  font-weight: 700 !important;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.25);
-}
-.stButton>button:hover {
-  background: rgba(240,240,240,1) !important;
-  transform: translateY(-2px);
-}
-
-/* Table text */
-table, th, td {
-  color: #111 !important;
-  font-weight: 700 !important;
-}
-
-</style>
-"""
+# ----------------------
+# SIDEBAR FIRST ✔
+# ----------------------
+with st.sidebar:
+    st.header("⚙️ Settings")
+    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
+    st.markdown("---")
+    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"])
+    st.markdown("---")
 
 # ----------------------
-# Header
+# NOW APPLY CSS ✔
 # ----------------------
-st.markdown("""
-<div class="glass-panel" style="text-align:center;">
-    <h1>💊 Drug Prescription Classifier</h1>
-    <p style="color:#111; font-weight:800; margin-top:6px; font-size:18px;">
-        Predict drugs, explain why, generate reports, and monitor usage.
-    </p>
-</div>
-""", unsafe_allow_html=True)
+# Base light CSS
+st.markdown(base_css, unsafe_allow_html=True)
 
+# Dark Mode override CSS
+if mode == "Dark Mode":
+    dark_css = """
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1c1c1c 40%, #2e2e2e 100%) !important;
+        }
+        .glass-panel, .glass-panel-2 {
+            background: rgba(0,0,0,0.55) !important;
+            color: #fefefe !important;
+        }
+        h1, h2, h3, h4, h5, p, label, div {
+            color: #fefefe !important;
+        }
+        input, select, textarea {
+            background: rgba(255,255,255,0.15) !important;
+            color: #fff !important;
+        }
+        .stButton>button {
+            background: rgba(255,255,255,0.2) !important;
+            color: #fff !important;
+        }
+    </style>
+    """
+    st.markdown(dark_css, unsafe_allow_html=True)
 
 # ----------------------
 # Emoji icons & drug info
