@@ -16,9 +16,10 @@ from reportlab.pdfgen import canvas
 st.set_page_config(page_title="Drug Prescription Classifier", page_icon="💊", layout="centered")
 with st.sidebar:
     st.header("⚙️ Settings")
-    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_switch")
+   mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_mode_key")
+
     st.markdown("---")
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"], key="nav_page")
+    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"], key="navigation_page_key")
     st.markdown("---")
     st.write("Use sidebar to switch pages or theme.")
 
