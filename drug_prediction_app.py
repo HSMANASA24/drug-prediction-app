@@ -3,29 +3,16 @@ import streamlit as st
 import pandas as pd
 import io
 import datetime
+
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-# ----------------------
-# Page config & sidebar
-# ----------------------
-st.set_page_config(page_title="Drug Prescription Classifier", page_icon="💊", layout="centered")
-with st.sidebar:
-    st.header("⚙️ Settings")
-    mode = st.radio("🌗 Theme Mode", ["Light Mode", "Dark Mode"], key="theme_mode_key")
 
-    st.markdown("---")
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"], key="navigation_page_key")
-    st.markdown("---")
-    st.write("Use sidebar to switch pages or theme.")
-
-# ----------------------
-# Minimal CSS (glass + readability)
-# ----------------------
 # --------------------------------
 # CLEAN CSS (Glassmorphism + titles bold only)
 # --------------------------------
@@ -57,13 +44,13 @@ section[data-testid="stSidebar"] {
 /* NORMAL TEXT */
 html, body, div, p, span, label, input, textarea, select {
     color:#111 !important;
-    font-weight:400 !important;  /* Normal */
+    font-weight:400 !important;
 }
 
 /* ONLY TITLES BOLD */
 h1, h2, h3, h4, h5 {
     color:#111 !important;
-    font-weight:800 !important;  /* Bold titles only */
+    font-weight:800 !important;
 }
 
 /* Inputs */
@@ -94,56 +81,57 @@ table, th, td {
 }
 </style>
 """
+
+# Apply CSS
 st.markdown(base_css, unsafe_allow_html=True)
 
 
 # -------------------------
-# SINGLE SIDEBAR (Only One)
-# -------------------------
-# -------------------------
-# SINGLE SIDEBAR (NO THEME MODE)
+# SINGLE SIDEBAR (NO THEME MODE + NO PREDICTOR)
 # -------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
 
     page = st.radio(
         "📄 Navigate",
-        ["Predictor", "Drug Information", "Bulk Prediction", "Monitoring", "About"],
+        ["Drug Information", "Bulk Prediction", "Monitoring", "About"],
         key="nav_select"
     )
 
     st.markdown("---")
-    st.write("Use sidebar to switch pages or theme.")
+    st.write("Use sidebar to navigate.")
 
 
 # -------------------------
-# APPLY LIGHT MODE
+# Header
 # -------------------------
 st.markdown("""
 <div class="glass-panel" style="text-align:center;">
     <h1>💊 Drug Prescription Classifier</h1>
     <p style="color:#111; font-weight:600; margin-top:6px; font-size:18px;">
-        Predict drugs, explain why, generate reports, and monitor usage.
+        Predict drugs, analyze data, generate reports, and monitor usage.
     </p>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ----------------------
-# Emoji icons & drug info
-# ----------------------
+# --------------------------------
+# DRUG DETAILS
+# --------------------------------
 drug_images = {"drugA": "💊","drugB": "🩺","drugC": "⚗️","drugX": "🧬","drugY": "🩸"}
+
 drug_details = {
     "drugA": {"name":"Drug A","use":"Used for normal BP and cholesterol.","mechanism":"Supports circulatory health.","side_effects":["Headache","Dry mouth"],"precautions":"Avoid alcohol.","dosage":"1 tablet daily."},
     "drugB": {"name":"Drug B","use":"For high blood pressure.","mechanism":"Relaxes blood vessels.","side_effects":["Low BP","Fatigue"],"precautions":"Not for pregnancy.","dosage":"1 tablet/day."},
-    "drugC": {"name":"Drug C","use":"Electrolyte balance.","mechanism":"Balances Na/K.","side_effects":["Nausea"],"precautions":"Monitor levels.","dosage":"1–2 per day."},
+    "drugC": {"name":"Drug C","use":"Balances electrolyte levels.","mechanism":"Balances Na/K.","side_effects":["Nausea"],"precautions":"Monitor levels.","dosage":"1–2 per day."},
     "drugX": {"name":"Drug X","use":"High cholesterol.","mechanism":"Reduces cholesterol.","side_effects":["Muscle pain"],"precautions":"Avoid high-fat foods.","dosage":"Evening dose."},
     "drugY": {"name":"Drug Y","use":"High BP + cholesterol.","mechanism":"Lowers BP & cholesterol.","side_effects":["Dizziness"],"precautions":"Regular BP checks.","dosage":"1 daily."}
 }
 
-# ----------------------
-# Sample dataset + model utils
-# ----------------------
+
+# --------------------------------
+# MODEL TRAINING FUNCTION
+# --------------------------------
 def load_sample_df():
     return pd.DataFrame([
         [23,'F','HIGH','HIGH',0.792535,0.031258,'drugY'],
@@ -154,276 +142,170 @@ def load_sample_df():
         [45,'M','NORMAL','NORMAL',0.7,0.05,'drugA']
     ], columns=['Age','Sex','BP','Cholesterol','Na','K','Drug'])
 
+
 @st.cache_resource
 def train_model(df):
     X = df[['Age','Sex','BP','Cholesterol','Na','K']]
     y = df['Drug']
-    numeric = ['Age','Na','K']; categorical = ['Sex','BP','Cholesterol']
-    pre = ColumnTransformer([("num", StandardScaler(), numeric),("cat", OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical)])
-    pipe = Pipeline([("pre", pre),("clf", LogisticRegression(max_iter=2000, multi_class='multinomial'))])
-    pipe.fit(X,y)
-    return pipe
 
-# ----------------------
-# Initialize session logs (in-memory)
-# ----------------------
-if 'logs' not in st.session_state:
-    st.session_state['logs'] = []  # each entry: dict with timestamp, input, prediction, confidence, explanation
+    numeric = ['Age','Na','K']
+    categorical = ['Sex','BP','Cholesterol']
+
+    pre = ColumnTransformer([
+        ("num", StandardScaler(), numeric),
+        ("cat", OneHotEncoder(handle_unknown='ignore', sparse_output=False), categorical)
+    ])
+
+    model = Pipeline([
+        ("pre", pre),
+        ("clf", LogisticRegression(max_iter=2000, multi_class='multinomial'))
+    ])
+
+    model.fit(X,y)
+    return model
+
+
+
+# SESSION LOGS
+if "logs" not in st.session_state:
+    st.session_state["logs"] = []
 
 def append_log(entry: dict):
-    st.session_state['logs'].append(entry)
+    st.session_state["logs"].append(entry)
 
-# ----------------------
-# Explain prediction: rule-based + class stats
-# ----------------------
-def explain_prediction(model, df_train, input_df, predicted):
-    # model: trained pipeline; df_train: training dataframe; input_df: single-row df; predicted: predicted class label
-    proba = None
-    try:
-        proba = model.predict_proba(input_df)[0]
-        class_index = list(model.classes_).index(predicted)
-        confidence = float(proba[class_index])
-    except Exception:
-        confidence = None
 
-    # compute simple rule-based influences using class means and category modes
-    stats = df_train.groupby('Drug').agg({'Age':'mean','Na':'mean','K':'mean'})
-    cat_modes = df_train.groupby('Drug').agg(lambda x: x.mode().iloc[0] if not x.mode().empty else None)[['Sex','BP','Cholesterol']]
-    reasons = []
 
-    # numeric comparisons
-    for col in ['Age','Na','K']:
-        inp = float(input_df.iloc[0][col])
-        mean_for_class = float(stats.loc[predicted][col])
-        if inp >= mean_for_class:
-            reasons.append(f"{col} ({inp}) is higher than average for {predicted} ({mean_for_class:.2f}) — increases chance.")
-        else:
-            reasons.append(f"{col} ({inp}) is lower than average for {predicted} ({mean_for_class:.2f}) — may lower chance.")
-
-    # categorical matches
-    for col in ['Sex','BP','Cholesterol']:
-        inp = input_df.iloc[0][col]
-        mode_val = cat_modes.loc[predicted][col]
-        if inp == mode_val:
-            reasons.append(f"{col} = {inp} matches typical {predicted} patients — supportive.")
-        else:
-            reasons.append(f"{col} = {inp} differs from typical {predicted} patients (usually {mode_val}) — neutral/contradictory.")
-
-    # Compose explanation
-    explanation = "\n".join(reasons)
-    return confidence, explanation
-
-# ----------------------
-# PDF report generator (ReportLab)
-# ----------------------
-def create_pdf_report(patient_info: dict, prediction: str, confidence: float, explanation: str, drug_info: dict):
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    margin = 40
-    y = height - margin
-
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(margin, y, "Drug Prescription Report")
-    y -= 30
-
-    c.setFont("Helvetica", 11)
-    c.drawString(margin, y, f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    y -= 25
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin, y, "Patient Information:")
-    y -= 18
-    c.setFont("Helvetica", 11)
-    for k, v in patient_info.items():
-        c.drawString(margin+10, y, f"{k}: {v}")
-        y -= 15
-
-    y -= 8
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin, y, "Prediction:")
-    y -= 18
-    c.setFont("Helvetica", 11)
-    conf_text = f"{confidence*100:.1f}%" if confidence is not None else "N/A"
-    c.drawString(margin+10, y, f"Predicted Drug: {prediction} (Confidence: {conf_text})")
-    y -= 18
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin, y, "Explanation:")
-    y -= 16
-    c.setFont("Helvetica", 10)
-    for line in explanation.split("\n"):
-        c.drawString(margin+10, y, line)
-        y -= 14
-        if y < 100:
-            c.showPage()
-            y = height - margin
-
-    y -= 8
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin, y, "Drug Details:")
-    y -= 16
-    c.setFont("Helvetica", 11)
-    c.drawString(margin+10, y, f"Name: {drug_info.get('name','')}")
-    y -= 14
-    c.drawString(margin+10, y, f"Use: {drug_info.get('use','')}")
-    y -= 14
-    c.drawString(margin+10, y, f"Mechanism: {drug_info.get('mechanism','')}")
-    y -= 14
-    c.drawString(margin+10, y, "Side effects: " + ", ".join(drug_info.get('side_effects',[])))
-    y -= 18
-    c.drawString(margin+10, y, f"Precautions: {drug_info.get('precautions','')}")
-    y -= 18
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-# ----------------------
-# PAGES
-# ----------------------
-
-# Predict single patient
-if page == "Predictor":
-    st.markdown('<div class="glass-panel"><h3>Single Prediction</h3></div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
-    uploaded = st.file_uploader("Upload CSV (optional) - used for retraining (must have header row)", type=["csv"], key="up_single")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    df_train = pd.read_csv(uploaded) if uploaded else load_sample_df()
-    model = train_model(df_train)
-
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
-    st.subheader("Enter Patient Details")
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("Age", min_value=1, max_value=120, value=45)
-        sex = st.selectbox("Sex", ["F","M"])
-        bp = st.selectbox("Blood Pressure", ["LOW","NORMAL","HIGH"])
-    with col2:
-        cholesterol = st.selectbox("Cholesterol", ["HIGH","NORMAL"])
-        na = st.number_input("Sodium (Na)", value=0.7, format="%.4f")
-        k = st.number_input("Potassium (K)", value=0.05, format="%.4f")
-
-    if st.button("🔍 Predict"):
-        input_df = pd.DataFrame([[age, sex, bp, cholesterol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        pred = model.predict(input_df)[0]
-        try:
-            confidence, explanation = explain_prediction(model, df_train, input_df, pred)
-        except Exception:
-            confidence, explanation = None, "No detailed explanation available."
-
-        st.success(f"💊 Predicted Drug: **{pred}**")
-        if confidence is not None:
-            st.info(f"Model confidence: **{confidence*100:.1f}%**")
-        st.markdown("**Why this prediction?**")
-        st.write(explanation)
-
-        # append to session logs
-        log_entry = {
-            "timestamp": datetime.datetime.now().isoformat(),
-            "Age": age, "Sex": sex, "BP": bp, "Cholesterol": cholesterol, "Na": na, "K": k,
-            "prediction": pred, "confidence": confidence if confidence is not None else None,
-            "explanation": explanation
-        }
-        append_log(log_entry)
-
-        # PDF Report download
-        if st.button("📄 Generate PDF Medical Report"):
-            patient_info = {"Age": age, "Sex": sex, "BP": bp, "Cholesterol": cholesterol, "Na": na, "K": k}
-            pdf_buf = create_pdf_report(patient_info, pred, confidence if confidence is not None else 0.0, explanation, drug_details.get(pred, {}))
-            st.download_button("📥 Download PDF Report", data=pdf_buf, file_name=f"report_{pred}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf", mime="application/pdf")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Drug information page (unchanged)
+# --------------------------------
+# PAGE 1 — DRUG INFORMATION
+# --------------------------------
 if page == "Drug Information":
-    st.markdown('<div class="glass-panel"><h3>Drug Information</h3></div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel"><h2>Drug Information</h2></div>', unsafe_allow_html=True)
+
     choice = st.selectbox("Select Drug", list(drug_details.keys()))
-    st.markdown('</div>', unsafe_allow_html=True)
     info = drug_details[choice]
     icon = drug_images[choice]
-    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
-    st.markdown(f"<h2>{icon} {info['name']}</h2>", unsafe_allow_html=True)
-    st.markdown("### Use"); st.write(info["use"])
-    st.markdown("### Mechanism"); st.write(info["mechanism"])
+
+    st.markdown(f"""
+    <div class="glass-panel">
+        <h2>{icon} {info['name']}</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### Use")
+    st.write(info["use"])
+
+    st.markdown("### Mechanism")
+    st.write(info["mechanism"])
+
     st.markdown("### Side Effects")
     for s in info["side_effects"]:
-        st.markdown(f"- {s}")
-    st.markdown("### Precautions"); st.write(info["precautions"])
-    st.markdown("### Dosage"); st.write(info["dosage"])
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.write("- " + s)
 
-# Bulk prediction (unchanged except logs)
+    st.markdown("### Precautions")
+    st.write(info["precautions"])
+
+    st.markdown("### Dosage")
+    st.write(info["dosage"])
+
+
+
+# --------------------------------
+# PAGE 2 — BULK PREDICTION
+# --------------------------------
 if page == "Bulk Prediction":
-    st.markdown('<div class="glass-panel"><h3>Bulk Prediction</h3></div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
-    csv_file = st.file_uploader("Upload CSV for bulk prediction (columns: Age,Sex,BP,Cholesterol,Na,K)", type=["csv"], key="bulk")
-    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="glass-panel"><h2>Bulk Prediction</h2></div>', unsafe_allow_html=True)
+
+    csv_file = st.file_uploader("Upload CSV for bulk prediction (Age,Sex,BP,Cholesterol,Na,K)", type=["csv"])
+
     if csv_file:
-        bulk_df = pd.read_csv(csv_file)
-        st.dataframe(bulk_df.head())
-        required = ['Age','Sex','BP','Cholesterol','Na','K']; missing = [c for c in required if c not in bulk_df.columns]
+        df_bulk = pd.read_csv(csv_file)
+        st.dataframe(df_bulk.head())
+
+        required = ['Age','Sex','BP','Cholesterol','Na','K']
+        missing = [c for c in required if c not in df_bulk.columns]
+
         if missing:
-            st.error(f"Missing required columns: {missing}")
+            st.error(f"Missing columns: {missing}")
         else:
-            model = train_model(load_sample_df())
-            bulk_df["Predicted_Drug"] = model.predict(bulk_df[required])
-            st.success("Predictions complete")
-            st.dataframe(bulk_df.head())
-            # append logs for each row
-            for _, row in bulk_df.iterrows():
-                entry = {"timestamp": datetime.datetime.now().isoformat(),
-                         "Age": int(row['Age']), "Sex": row['Sex'], "BP": row['BP'], "Cholesterol": row['Cholesterol'],
-                         "Na": float(row['Na']), "K": float(row['K']), "prediction": row['Predicted_Drug']}
-                append_log(entry)
-            st.download_button("📥 Download predictions CSV", data=bulk_df.to_csv(index=False).encode("utf-8"),
-                               file_name="bulk_predictions.csv", mime="text/csv")
-    else:
-        st.info("Upload CSV to begin bulk predictions.")
+            model = train_model(load_sample_df())  # using sample training data
+            df_bulk["Predicted_Drug"] = model.predict(df_bulk[required])
+            st.success("Bulk prediction completed!")
 
-# Monitoring page: show logs, counts, timeline
+            # Save logs
+            for _, r in df_bulk.iterrows():
+                append_log({
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "Age": r['Age'],
+                    "Sex": r['Sex'],
+                    "BP": r['BP'],
+                    "Cholesterol": r['Cholesterol'],
+                    "Na": r['Na'],
+                    "K": r['K'],
+                    "prediction": r["Predicted_Drug"]
+                })
+
+            st.dataframe(df_bulk)
+
+            st.download_button(
+                "📥 Download Results CSV",
+                df_bulk.to_csv(index=False).encode("utf-8"),
+                file_name="bulk_predictions.csv",
+                mime="text/csv"
+            )
+
+    else:
+        st.info("Upload a CSV file to begin.")
+
+
+
+# --------------------------------
+# PAGE 3 — MONITORING
+# --------------------------------
 if page == "Monitoring":
-    st.markdown('<div class="glass-panel"><h3>Monitoring & Logs</h3></div>', unsafe_allow_html=True)
-    logs = st.session_state.get('logs', [])
+    st.markdown('<div class="glass-panel"><h2>Monitoring</h2></div>', unsafe_allow_html=True)
+
+    logs = st.session_state["logs"]
+
     if not logs:
-        st.info("No predictions made yet this session.")
+        st.info("No predictions yet this session.")
     else:
-        logs_df = pd.DataFrame(logs)
-        # quick stats
-        st.markdown('<div class="glass-panel-2">', unsafe_allow_html=True)
-        st.write("### Quick Stats")
-        counts = logs_df['prediction'].value_counts()
-        st.write("Most predicted drugs:")
-        st.bar_chart(counts)
-        st.write("Total predictions this session:", len(logs_df))
-        st.markdown('</div>', unsafe_allow_html=True)
+        df_logs = pd.DataFrame(logs)
 
-        # timeline
-        st.write("### Prediction timeline")
-        timeline = pd.to_datetime(logs_df['timestamp']).dt.floor('min').value_counts().sort_index()
-        st.line_chart(timeline)
+        st.write("### Prediction Counts")
+        st.bar_chart(df_logs["prediction"].value_counts())
 
-        # show logs table
-        st.write("### Logs (most recent first)")
-        st.dataframe(logs_df.sort_values(by='timestamp', ascending=False).reset_index(drop=True))
+        st.write("### Timeline")
+        times = pd.to_datetime(df_logs["timestamp"]).dt.floor("min").value_counts().sort_index()
+        st.line_chart(times)
 
-        # download logs
-        st.download_button("📥 Download Logs CSV", data=logs_df.to_csv(index=False).encode("utf-8"),
-                           file_name="session_prediction_logs.csv", mime="text/csv")
+        st.write("### Logs Table")
+        st.dataframe(df_logs)
 
-# About page
+        st.download_button(
+            "📥 Download Logs",
+            df_logs.to_csv(index=False).encode("utf-8"),
+            "prediction_logs.csv",
+            "text/csv"
+        )
+
+
+
+# --------------------------------
+# PAGE 4 — ABOUT
+# --------------------------------
 if page == "About":
-    st.markdown('<div class="glass-panel"><h3>About</h3></div>', unsafe_allow_html=True)
-    st.markdown("""
-    ### Drug Prescription Classifier
-    Predicts drugs using simple ML. This demo includes:
-    - Single prediction w/ explanation
-    - Bulk CSV predictions
-    - Session monitoring (charts)
-    - PDF medical report generation
-    """)
-    st.markdown("### Note on persistence")
-    st.write("Logs are session-based (in-memory). For production, connect a DB or cloud storage for persistent monitoring.")
+    st.markdown('<div class="glass-panel"><h2>About</h2></div>', unsafe_allow_html=True)
 
-# Footer
-st.caption("Built with ❤️ — enhanced with monitoring, explanations, and PDF reports.")
+    st.write("""
+    ### Drug Prescription Classifier  
+    This application predicts drug types from patient data using machine learning.
+
+    **Features:**
+    - Drug information  
+    - Bulk CSV predictions  
+    - Usage monitoring  
+    - Glass UI theme  
+    """)
+
+st.caption("Built with ❤️ — Drug Predictor App")
