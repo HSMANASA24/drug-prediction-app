@@ -95,9 +95,13 @@ if "authenticated" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state["username"] = None
 
+# -----------------------------------
+# Login Page
+# -----------------------------------
 def login_page():
     st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
     st.subheader("🔒 Login")
+
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
@@ -111,7 +115,9 @@ def login_page():
         st.experimental_rerun()
 
     if login_btn:
-        if user in USERS and secrets.compare_digest(USERS[user], hash_password(pwd)):
+        hashed = hash_password(pwd)
+
+        if user in USERS and secrets.compare_digest(USERS[user], hashed):
             st.session_state["authenticated"] = True
             st.session_state["username"] = user
             st.experimental_rerun()
@@ -121,7 +127,10 @@ def login_page():
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-if not st.session_state["authenticated"]:
+# -----------------------------------
+# Require login before showing pages
+# -----------------------------------
+if not st.session_state.get("authenticated", False):
     login_page()
 
 # -------------------------------------------------
