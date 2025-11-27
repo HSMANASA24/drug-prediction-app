@@ -69,59 +69,58 @@ h2 { color:#003366; font-weight:800; }
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-# -------------------------
-# Simple plain-text USERS (no hashing)
-# -------------------------
+# -----------------------------------------
+# LOGIN SYSTEM FOR ALL USERS
+# -----------------------------------------
+
+st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
+st.title("🔒 Smart Drug Shield Login")
+
+# USERS WITH PASSWORDS (plain text version)
 USERS = {
-    "admin": "Admin@123",
-    "manasa": "Manasa@2005",
-    "doctor": "Doctor@123",
-    "student": "Student@123"
+    "admin": "Admin@123"
+   
 }
 
-# -------------------------
-# Session defaults
-# -------------------------
+# Only create session states once
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+
 if "username" not in st.session_state:
     st.session_state["username"] = None
 
-# -------------------------
-# LOGIN PAGE (plain-text)
-# -------------------------
+
 def login_page():
-    st.markdown('<div class="glass" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
-    st.subheader("🔒 Admin Login")
-    st.write("Enter your username and password to continue.")
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-    c1, c2 = st.columns([1,1])
-    with c1:
-        btn_login = st.button("Login")
-    with c2:
-        btn_clear = st.button("Clear")
+    col1, col2 = st.columns(2)
+    with col1:
+        login_btn = st.button("Login")
 
-    if btn_clear:
-        # rerun to clear inputs
-        st.rerun()
+    with col2:
+        clear_btn = st.button("Clear")
 
-    if btn_login:
-        if user in USERS and USERS[user] == pwd:
+    if clear_btn:
+        st.experimental_rerun()
+
+    if login_btn:
+        if username in USERS and USERS[username] == password:
             st.session_state["authenticated"] = True
-            st.session_state["username"] = user
-            st.success(f"Welcome, {user} — logging you in...")
-            st.rerun()
+            st.session_state["username"] = username
+            st.success("Login successful 🎉")
+            st.experimental_rerun()
         else:
-            st.error("Invalid username or password")
+            st.error("❌ Invalid username or password")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# require login
+
+# USER MUST LOGIN BEFORE USING ANY PAGE
 if not st.session_state["authenticated"]:
     login_page()
+
 
 # -------------------------
 # Sidebar (no dark mode)
