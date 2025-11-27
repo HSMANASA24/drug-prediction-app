@@ -69,61 +69,63 @@ h2 { color:#003366; font-weight:800; }
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-# -----------------------------------------
-# LOGIN SYSTEM FOR ALL USERS (FIXED)
-# -----------------------------------------
-
-st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
-st.title("🔒 Smart Drug Shield Login")
-
-USERS = {
-    "admin": "Admin@123",
-    "manasa": "Manasa@2005",
-    "doctor": "Doctor@123",
-    "student": "Student@123"
-}
-
-# Initialize session states
+# -------------------------------
+# SESSION INITIALIZATION
+# -------------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if "username" not in st.session_state:
     st.session_state["username"] = None
 
+USERS = {
+    "admin": "Admin@123",
+    "manasa": "Manasa@2005",
+    "doctor": "Doctor@123",
+    "student": "Student@123",
+}
 
+# -------------------------------
+# LOGIN FUNCTION (no rerun here)
+# -------------------------------
 def login_page():
+    st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
+    st.title("🔒 Smart Drug Shield Login")
+
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        login_btn = st.button("Login")
-    with col2:
-        clear_btn = st.button("Clear")
+    login_btn = st.button("Login")
+    clear_btn = st.button("Clear")
 
     if clear_btn:
-        st.session_state["authenticated"] = False
         st.session_state["username"] = None
-        st.experimental_rerun()
+        st.session_state["authenticated"] = False
 
     if login_btn:
         if username in USERS and USERS[username] == password:
+            # ✔️ Set session state – NO RERUN HERE
             st.session_state["authenticated"] = True
             st.session_state["username"] = username
-            st.success("Login successful 🎉")
-
-            # 🚀 Only rerun, DO NOT stop
-            st.experimental_rerun()
         else:
             st.error("❌ Invalid username or password")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# 🚀 If NOT authenticated → show login page (NO st.stop here)
+# -------------------------------
+# MAIN AUTH LOGIC (SAFE AREA)
+# -------------------------------
 if not st.session_state["authenticated"]:
     login_page()
+
+    # ✔️ If login succeeded, NOW rerun safely
+    if st.session_state["authenticated"]:
+        st.experimental_rerun()
+
+    # ❌ Prevent the rest of the app from loading
     st.stop()
+
 
 
 # -------------------------
