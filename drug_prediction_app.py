@@ -570,22 +570,38 @@ with tab_chatbot:
                 st.markdown(f"**Bot:** {msg}")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------------------
-# Drug Info tab
-# ---------------------------
-with tab_druginfo:
-    st.markdown("<div class='glass'><h3>💊 Drug Information</h3>", unsafe_allow_html=True)
-    for name, info in drug_details.items():
-        with st.expander(name):
-            st.write(f"**Use:** {info['use']}")
-            st.write(f"**Mechanism:** {info['mechanism']}")
-            st.write("**Side effects (severity):**")
-            for s, sev in info['side_effects']:
-                sev_color = {"Mild":"#2E8B57","Moderate":"#FF8C00","Severe":"#C0392B"}.get(sev,"#333")
-                st.markdown(f"- **{s}** — <span style='color:{sev_color};'>{sev}</span>", unsafe_allow_html=True)
-            st.write(f"**Precautions:** {info['precautions']}")
-            st.write(f"**Dosage:** {info['dosage']}")
-    st.markdown("</div>", unsafe_allow_html=True)
+if page == "Drug Information":
+    for drug, info in drug_details.items():
+        with st.expander(f"📌 {drug}"):
+            st.write("**Use:**", info["use"])
+            st.write("**Mechanism:**", info["mechanism"])
+
+            st.markdown("### ⚠️ Side Effects")
+            for s in info["side_effects"]:
+                st.write("- " + s)
+
+            st.write("**Precautions:**", info["precautions"])
+            st.write("**Dosage:**", info["dosage"])
+
+            st.markdown("### 🍏 Food to Eat")
+            for x in info["food_to_eat"]:
+                st.write("- " + x)
+
+            st.markdown("### 🚫 Food to Avoid")
+            for x in info["food_to_avoid"]:
+                st.write("- " + x)
+
+            st.markdown("### 💊 Drug Interactions")
+            for x in info["drug_interactions"]:
+                st.write("- " + x)
+
+            st.markdown("### ⚠️ Adverse Drug Reactions (ADRs)")
+            for x in info["adverse_reactions"]:
+                st.write("- " + x)
+
+            st.markdown("### 🏥 Hospitality Risk")
+            st.write(info["hospitality_risk"])
+
 
 # ---------------------------
 # Dashboard tab (charts)
