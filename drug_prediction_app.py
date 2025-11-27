@@ -1,10 +1,9 @@
-# app.py - Smart Drug Shield (AI Healthcare Dashboard - Soft Medical Glow)
+# app.py - Smart Drug Shield (Final, Ensemble + Chatbot)
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
 import secrets
-from datetime import datetime
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -15,63 +14,51 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-# Optional boosters (safe import)
-HAS_XGB = True
-HAS_LGB = True
-try:
-    from xgboost import XGBClassifier
-except Exception:
-    HAS_XGB = False
-
-try:
-    from lightgbm import LGBMClassifier
-except Exception:
-    HAS_LGB = False
-
-# -------------------------
-# App config
-# -------------------------
+# ---------------------------
+# App config + Title
+# ---------------------------
 st.set_page_config(page_title="🛡 Smart Drug Shield", page_icon="💊", layout="centered")
-
-# Header (large, visible)
 st.markdown("""
-    <div style="width:100%; text-align:center; padding-top:8px; padding-bottom:4px;">
-      <h1 style="margin:0; color:#003366; font-size:42px; font-weight:900;">
+    <h1 style='text-align:center; font-size:40px; font-weight:900; color:#0A3D62; margin-bottom:0.2rem'>
         🛡 Smart Drug Shield
-      </h1>
-      <p style="margin:0; color:#0066cc; font-weight:600;">AI-powered drug prescription classifier — Medical theme</p>
-    </div>
+    </h1>
+    <p style='text-align:center; color:#145A32; margin-top:0; margin-bottom:1rem'>
+        AI-powered drug prescription classifier — Medical theme
+    </p>
 """, unsafe_allow_html=True)
 
-# -------------------------
-# Medical theme CSS (Soft Medical Glow)
-# -------------------------
-CSS = """
+# ---------------------------
+# Medical theme CSS
+# ---------------------------
+MEDICAL_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-html, body, [class*="css"]  { font-family: Inter, sans-serif; background: #F7F9FC; }
-.glass { background: rgba(255,255,255,0.85); border-radius:14px; padding:18px; box-shadow: 0 6px 20px rgba(0,77,153,0.08); border:1px solid rgba(0,77,153,0.06); }
-.header-gradient {
-  background: linear-gradient(90deg, rgba(0,123,255,0.12), rgba(40,199,111,0.08));
-  padding:12px; border-radius:12px;
+body {
+    background: linear-gradient(135deg, #e8f9ff, #d4fce5);
 }
-.stButton>button { background: linear-gradient(90deg,#007BFF,#28C76F); color:white; border:none; padding:10px 18px; font-weight:700; border-radius:10px; box-shadow: 0 6px 18px rgba(34,139,230,0.12); }
-.stButton>button:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(34,139,230,0.18); }
-input, textarea, select { border-radius:10px; padding:8px; border:1px solid rgba(0,0,0,0.08); }
-h2 { color:#003366; font-weight:800; }
-.small-muted { color:#56677a; font-size:13px; }
-.metric-card { border-radius:12px; padding:12px; background: white; box-shadow: 0 6px 18px rgba(2, 62, 138, 0.04); border:1px solid rgba(0,0,0,0.04); }
-.tag { display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700; color:#fff; }
-.tag-blue { background: #007BFF; }
-.tag-green { background: #28C76F; }
-.conf-bar { height:12px; border-radius:8px; background: linear-gradient(90deg,#28C76F,#007BFF); }
+.glass-panel {
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 18px;
+    border: 1px solid #bfe9ff;
+}
+h1,h2,h3,h4 { color:#0A3D62 !important; font-weight:800; }
+label, p, span, div { color:#0A3D62 !important; }
+.stButton>button {
+    background-color:#0A3D62 !important;
+    color:white !important;
+    border-radius:8px !important;
+    padding:8px 14px !important;
+}
+.stButton>button:hover { background-color:#145A32 !important; }
 </style>
 """
-st.markdown(CSS, unsafe_allow_html=True)
+st.markdown(MEDICAL_CSS, unsafe_allow_html=True)
 
-# -------------------------
-# Simple plain-text USERS (no hashing)
-# -------------------------
+# ---------------------------
+# Simple user DB (in-memory)
+# ---------------------------
 USERS = {
     "admin": "Admin@123",
     "manasa": "Manasa@2005",
@@ -79,83 +66,78 @@ USERS = {
     "student": "Student@123"
 }
 
-# -------------------------
-# Session defaults
-# -------------------------
+# ---------------------------
+# Session init
+# ---------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "username" not in st.session_state:
     st.session_state["username"] = None
+# Store predictor input in session so chatbot can use them
+if "predictor_inputs" not in st.session_state:
+    st.session_state["predictor_inputs"] = None
+# Store trained ensemble models
+if "ensemble_models" not in st.session_state:
+    st.session_state["ensemble_models"] = None
 
-# -------------------------
-# LOGIN PAGE (plain-text)
-# -------------------------
+# ---------------------------
+# Safe login UI
+# ---------------------------
 def login_page():
-    st.markdown('<div class="glass" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
-    st.subheader("🔒 Admin Login")
-    st.write("Enter your username and password to continue.")
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
-
-    c1, c2 = st.columns([1,1])
-    with c1:
-        btn_login = st.button("Login")
-    with c2:
-        btn_clear = st.button("Clear")
-
-    if btn_clear:
-        # rerun to clear inputs
-        st.rerun()
-
-    if btn_login:
-        if user in USERS and USERS[user] == pwd:
+    st.markdown('<div class="glass-panel" style="max-width:720px; margin:auto;">', unsafe_allow_html=True)
+    st.subheader("🔒 Smart Drug Shield — Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        login_btn = st.button("Login")
+    with col2:
+        clear_btn = st.button("Clear")
+    if clear_btn:
+        # clear fields by rerendering
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = None
+        st.experimental_rerun()
+    if login_btn:
+        if username in USERS and USERS[username] == password:
             st.session_state["authenticated"] = True
-            st.session_state["username"] = user
-            st.success(f"Welcome, {user} — logging you in...")
-            st.rerun()
+            st.session_state["username"] = username
+            st.success("Login successful 🎉")
         else:
-            st.error("Invalid username or password")
-
+            st.error("❌ Invalid username or password")
     st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
 
-# require login
 if not st.session_state["authenticated"]:
     login_page()
+    st.stop()
 
-# -------------------------
-# Sidebar (no dark mode)
-# -------------------------
+# ---------------------------
+# Sidebar navigation
+# ---------------------------
 with st.sidebar:
-    st.markdown('<div class="header-gradient">', unsafe_allow_html=True)
-    st.header(f"Welcome, {st.session_state.get('username')}")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Admin", "About"], index=0)
+    st.header(f"Welcome, {st.session_state['username']}")
+    page = st.radio("📄 Navigate", ["Predictor", "Drug Information", "Admin", "About"])
     st.markdown("---")
-    st.markdown("**Data source:** local `/mnt/data/Drug.csv` (fallback to GitHub RAW if not found)")
-    st.markdown("**Theme:** Medical (Blue + Green + White)")
-    st.markdown("---")
+    st.markdown("Dataset: local `/mnt/data/Drug.csv` (preferred) or GitHub RAW fallback.")
     if st.button("Logout"):
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
-        st.rerun()
+        st.experimental_rerun()
 
-# -------------------------
-# Data loading (local path primary)
-# -------------------------
-LOCAL_PATH = "/mnt/data/Drug.csv"   # <- local path used in this session (will be used as file URL if present)
+# ---------------------------
+# Dataset loading (local then GitHub)
+# ---------------------------
+LOCAL_PATH = "/mnt/data/Drug.csv"
 GITHUB_RAW = "https://raw.githubusercontent.com/HSMANASA24/drug-prediction-app/c476f30acf26ddc14b6b4a7eb796786c23a23edd/Drug.csv"
 
 @st.cache_data
 def load_dataset():
     if os.path.exists(LOCAL_PATH):
         df = pd.read_csv(LOCAL_PATH)
-        source = LOCAL_PATH
     else:
         df = pd.read_csv(GITHUB_RAW)
-        source = GITHUB_RAW
     df.columns = [c.strip() for c in df.columns]
+    # Map short codes to human-friendly drug names (if present)
     mapping = {
         "drugA": "Amlodipine",
         "drugB": "Atenolol",
@@ -165,79 +147,80 @@ def load_dataset():
     }
     if "Drug" in df.columns:
         df["Drug"] = df["Drug"].map(mapping).fillna(df["Drug"])
-    return df, source
+    return df
 
 try:
-    df_full, DATA_SOURCE = load_dataset()
+    df_full = load_dataset()
 except Exception as e:
     st.error("Failed to load dataset: " + str(e))
     st.stop()
 
 st.sidebar.markdown(f"Rows: **{df_full.shape[0]}**  |  Columns: **{df_full.shape[1]}**")
-st.sidebar.markdown(f"Source: `{DATA_SOURCE}`")
 
-# -------------------------
+# ---------------------------
 # Drug information dictionary
-# -------------------------
+# ---------------------------
 drug_details = {
     "Amlodipine": {
-        "use": "Lowers blood pressure by relaxing blood vessels (calcium channel blocker).",
-        "mechanism": "Calcium channel blocker that dilates peripheral arteries.",
-        "side_effects": ["Dizziness", "Edema", "Flushing"],
-        "precautions": "Monitor BP; caution with severe hypotension.",
+        "use": "Lowers blood pressure by relaxing blood vessels.",
+        "mechanism": "Calcium channel blocker.",
+        "side_effects": ["Dizziness", "Swelling (edema)", "Headache"],
+        "precautions": "Monitor BP; report severe dizziness or swelling.",
         "dosage": "5–10 mg once daily (typical adult)."
     },
     "Atenolol": {
-        "use": "Used for blood pressure control and heart rate reduction (beta-blocker).",
-        "mechanism": "Selective β1-blocker reducing heart rate and cardiac output.",
-        "side_effects": ["Fatigue", "Bradycardia", "Cold extremities"],
+        "use": "Controls blood pressure and heart rate.",
+        "mechanism": "Selective β1-blocker reducing heart rate.",
+        "side_effects": ["Fatigue", "Cold extremities", "Bradycardia"],
         "precautions": "Avoid in asthma; monitor heart rate.",
         "dosage": "50 mg once daily (adjust per clinical guidance)."
     },
     "ORS-K": {
-        "use": "Oral rehydration / electrolyte replacement for sodium–potassium balance.",
-        "mechanism": "Replenishes Na+ and K+ and maintains hydration.",
+        "use": "Corrects sodium–potassium imbalance (oral rehydration/electrolyte).",
+        "mechanism": "Replenishes Na+ and K+ to restore balance.",
         "side_effects": ["Nausea", "Bloating"],
         "precautions": "Monitor electrolytes in severe cases.",
-        "dosage": "As required during dehydration or imbalance."
+        "dosage": "As required per clinical context."
     },
     "Atorvastatin": {
         "use": "Lowers LDL cholesterol and cardiovascular risk.",
         "mechanism": "HMG-CoA reductase inhibitor (statin).",
         "side_effects": ["Muscle pain", "Liver enzyme elevation"],
-        "precautions": "Check liver enzymes; avoid during pregnancy.",
+        "precautions": "Check liver enzymes; avoid in pregnancy.",
         "dosage": "10–20 mg in the evening (typical start)."
     },
     "Losartan": {
-        "use": "Used to treat high blood pressure (angiotensin receptor blocker).",
-        "mechanism": "Blocks angiotensin II receptors causing vasodilation.",
+        "use": "Treats high blood pressure (angiotensin receptor blocker).",
+        "mechanism": "Blocks angiotensin II receptors to reduce BP.",
         "side_effects": ["Dizziness", "Increased potassium"],
         "precautions": "Avoid during pregnancy; monitor potassium.",
-        "dosage": "25–50 mg once daily (adjust per clinical guidance)."
+        "dosage": "25–50 mg once daily (adjust as needed)."
     }
 }
 
-# -------------------------
+# ---------------------------
 # OneHotEncoder compatibility helper
-# -------------------------
+# ---------------------------
 def onehot_factory():
     try:
         return OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     except TypeError:
         return OneHotEncoder(sparse=False, handle_unknown='ignore')
 
-# -------------------------
-# Train models helper
-# -------------------------
+# ---------------------------
+# Train all models and cache them
+# ---------------------------
 @st.cache_resource
-def build_and_train(model_name: str, df: pd.DataFrame):
-    dfc = df.dropna().copy()
-    X = dfc[['Age','Sex','BP','Cholesterol','Na','K']]
-    y = dfc['Drug']
+def train_all_models(df: pd.DataFrame):
+    df = df.dropna().copy()
+    X = df[['Age','Sex','BP','Cholesterol','Na','K']]
+    y = df['Drug']
+
     pre = ColumnTransformer([
         ("num", StandardScaler(), ['Age','Na','K']),
         ("cat", onehot_factory(), ['Sex','BP','Cholesterol'])
     ])
+
     models = {
         "Logistic Regression": LogisticRegression(max_iter=2000),
         "KNN": KNeighborsClassifier(),
@@ -245,117 +228,234 @@ def build_and_train(model_name: str, df: pd.DataFrame):
         "Random Forest": RandomForestClassifier(),
         "SVM": SVC(probability=True)
     }
-    if HAS_XGB:
-        models["XGBoost"] = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
-    if HAS_LGB:
-        models["LightGBM"] = LGBMClassifier()
 
-    if model_name not in models:
-        raise ValueError("Unknown model.")
-    pipe = Pipeline([("pre", pre), ("clf", models[model_name])])
-    pipe.fit(X, y)
-    return pipe
+    trained_pipes = []
+    for name, m in models.items():
+        pipe = Pipeline([("pre", pre), ("clf", m)])
+        pipe.fit(X, y)
+        trained_pipes.append((name, pipe))
+    return trained_pipes
 
-# -------------------------
-# Predictor page
-# -------------------------
-if page == "Predictor":
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("Single Prediction")
-    st.markdown('<div class="small-muted">Enter patient details to predict the most suitable drug. Models trained on the dataset loaded above.</div>', unsafe_allow_html=True)
+# Ensure models are trained and stored in session for reuse
+if st.session_state["ensemble_models"] is None:
+    with st.spinner("Training ensemble models on dataset..."):
+        st.session_state["ensemble_models"] = train_all_models(df_full)
 
-    models_list = ["Logistic Regression", "KNN", "Decision Tree", "Random Forest", "SVM"]
-    if HAS_XGB: models_list.append("XGBoost")
-    if HAS_LGB: models_list.append("LightGBM")
-    model_choice = st.selectbox("Select model", models_list, index=0)
+# Utility: ensemble predict (majority vote) and compute confidence
+def ensemble_predict(model_pipes, input_df):
+    # gather model predictions and probabilities
+    preds = []
+    prob_list = []
+    classes_list = []
 
-    with st.spinner("Training model..."):
+    for name, pipe in model_pipes:
         try:
-            model = build_and_train(model_choice, df_full)
-        except Exception as e:
-            st.error("Training failed: " + str(e))
-            st.stop()
-
-    c1, c2 = st.columns(2)
-    with c1:
-        age = st.number_input("Age", 1, 120, 45)
-        sex = st.selectbox("Sex", ["F","M"])
-        bp = st.selectbox("Blood Pressure (BP)", ["LOW","NORMAL","HIGH"])
-    with c2:
-        chol = st.selectbox("Cholesterol", ["HIGH","NORMAL"])
-        na = st.number_input("Sodium (Na)", format="%.6f", value=0.700000)
-        k = st.number_input("Potassium (K)", format="%.6f", value=0.050000)
-
-    if st.button("Predict"):
-        input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-        try:
-            pred = model.predict(input_df)[0]
-        except Exception as e:
-            st.error("Prediction error: " + str(e))
-            pred = None
-
-        proba = None
-        try:
-            proba = model.predict_proba(input_df)[0]
+            p = pipe.predict(input_df)[0]
+            preds.append(p)
         except Exception:
-            proba = None
+            continue
+        # try to get probabilities
+        try:
+            proba = pipe.predict_proba(input_df)[0]
+            prob_list.append((pipe.classes_, proba))
+            classes_list.append(pipe.classes_)
+        except Exception:
+            # if predict_proba unavailable, skip probability for that model
+            pass
 
-        if pred is not None:
-            if proba is not None:
-                sorted_idx = np.argsort(proba)[::-1]
-                top_idx = int(sorted_idx[0])
-                top_label = model.classes_[top_idx]
-                top_conf = float(proba[top_idx]) * 100.0
+    if len(preds) == 0:
+        return None, None, []
 
-                st.success(f"Predicted Drug: {top_label}  —  {top_conf:.2f}% confidence")
-                # Confidence bar
-                st.markdown("<div style='margin-top:8px; margin-bottom:8px;'><div style='width:100%; background:#eceff5; border-radius:8px; height:14px;'><div style='width:{}%; background:linear-gradient(90deg,#28C76F,#007BFF); height:100%; border-radius:8px;'></div></div></div>".format(min(max(top_conf,0),100)), unsafe_allow_html=True)
+    # majority vote for final prediction
+    final_pred = max(set(preds), key=preds.count)
 
-                st.write("Top predictions:")
-                for i in range(min(3, len(sorted_idx))):
-                    idx = int(sorted_idx[i])
-                    label = model.classes_[idx]
-                    pval = proba[idx] * 100.0
-                    st.write(f"{i+1}. **{label}** — {pval:.2f}%")
-                # confidence message
-                if top_conf >= 80:
-                    st.info("Confidence: High ✅")
-                elif top_conf >= 60:
-                    st.info("Confidence: Moderate ⚠️")
-                elif top_conf >= 40:
-                    st.warning("Confidence: Low ⚠️ Consider review")
-                else:
-                    st.error("Confidence: Very Low ❌ Seek further checks")
+    # compute average probability for final_pred across models that provided probabilities
+    probs_for_final = []
+    for classes, proba in prob_list:
+        # classes is array of labels for that model
+        if final_pred in classes:
+            idx = list(classes).index(final_pred)
+            probs_for_final.append(proba[idx])
+    if len(probs_for_final) > 0:
+        confidence = float(np.mean(probs_for_final)) * 100.0
+    else:
+        confidence = None
+
+    # compute top-3 aggregated by averaging probabilities across models that support probabilities
+    # Build a dict of label -> list of probs
+    agg = {}
+    for classes, proba in prob_list:
+        for cls, p in zip(classes, proba):
+            agg.setdefault(cls, []).append(p)
+    avg_probs = {cls: float(np.mean(ps)) for cls, ps in agg.items()}
+    # sort labels by avg prob desc
+    sorted_labels = sorted(avg_probs.items(), key=lambda x: x[1], reverse=True)
+    top3 = sorted_labels[:3]
+
+    return final_pred, confidence, top3
+
+# ---------------------------
+# Predictor + Chatbot UI (split)
+# ---------------------------
+if page == "Predictor":
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.subheader("🔍 Single Prediction — AI Drug Classifier")
+
+    # left predictor / right chatbot split
+    left_col, right_col = st.columns([2, 1])
+
+    # LEFT: predictor controls (user can still choose to view single-model predictions if desired)
+    with left_col:
+        st.write("### Predictor")
+        # Save default predictor inputs to session so chatbot can use them
+        age = st.number_input("Age", 1, 120, 45, key="age_input")
+        sex = st.selectbox("Sex", ["F", "M"], key="sex_input")
+        bp = st.selectbox("Blood Pressure (BP)", ["LOW", "NORMAL", "HIGH"], key="bp_input")
+        chol = st.selectbox("Cholesterol", ["NORMAL", "HIGH"], key="chol_input")
+        na = st.number_input("Sodium (Na)", format="%.6f", value=0.700000, key="na_input")
+        k = st.number_input("Potassium (K)", format="%.6f", value=0.050000, key="k_input")
+
+        # store current predictor inputs in session for chatbot
+        st.session_state.predictor_inputs = {
+            "Age": age, "Sex": sex, "BP": bp, "Cholesterol": chol, "Na": na, "K": k
+        }
+
+        # Show model-wise predictions if user wants (optional)
+        show_models_checkbox = st.checkbox("Show each model's prediction", value=False)
+
+        if st.button("Predict (Ensemble)"):
+            input_df = pd.DataFrame([[age, sex, bp, chol, na, k]],
+                                    columns=['Age','Sex','BP','Cholesterol','Na','K'])
+            final_pred, confidence, top3 = ensemble_predict(st.session_state["ensemble_models"], input_df)
+
+            if final_pred is None:
+                st.error("Prediction failed. Check model training / input.")
             else:
-                st.success("Predicted Drug: " + str(pred))
-                st.info("Selected algorithm does not support probabilities.")
+                if confidence is not None:
+                    st.success(f"Ensemble Recommendation: **{final_pred}** ({confidence:.2f}% confidence)")
+                else:
+                    st.success(f"Ensemble Recommendation: **{final_pred}** (confidence unavailable)")
 
-            # short explanation
-            explanation = (
-                f"The model predicted {pred} based on the following input:\n"
-                f"- Age: {age}\n- Sex: {sex}\n- BP: {bp}\n- Cholesterol: {chol}\n- Sodium (Na): {na}\n- Potassium (K): {k}"
-            )
-            st.markdown("**Why this prediction?**")
-            st.info(explanation)
+                st.write("### Top predictions (aggregated probabilities)")
+                for i, (lab, p) in enumerate(top3, start=1):
+                    st.write(f"{i}. {lab} — {p*100:.2f}%")
 
-            # show drug info
-            if pred in drug_details:
-                dd = drug_details[pred]
-                st.markdown("---")
-                st.markdown(f"<div class='metric-card'><h3 style='margin:0;color:#003366'>{pred}</h3><p class='small-muted' style='margin:0'>{dd['use']}</p></div>", unsafe_allow_html=True)
-                st.markdown(f"**Mechanism:** {dd['mechanism']}")
-                st.markdown(f"**Side Effects:** {', '.join(dd['side_effects'])}")
-                st.markdown(f"**Precautions:** {dd['precautions']}")
-                st.markdown(f"**Dosage:** {dd['dosage']}")
-        st.markdown('</div>', unsafe_allow_html=True)
+                st.write("### Why this prediction?")
+                st.info(
+                    f"• Age: {age}\n"
+                    f"• Sex: {sex}\n"
+                    f"• BP: {bp}\n"
+                    f"• Cholesterol: {chol}\n"
+                    f"• Sodium (Na): {na}\n"
+                    f"• Potassium (K): {k}"
+                )
 
-# -------------------------
+                # show drug info if available
+                if final_pred in drug_details:
+                    st.write("---")
+                    d = drug_details[final_pred]
+                    st.subheader(f"📌 About {final_pred}")
+                    st.write(f"**Use:** {d['use']}")
+                    st.write(f"**Mechanism:** {d['mechanism']}")
+                    st.write(f"**Side Effects:** {', '.join(d['side_effects'])}")
+                    st.write(f"**Precautions:** {d['precautions']}")
+                    st.write(f"**Dosage:** {d['dosage']}")
+
+            # optionally show individual model predictions
+            if show_models_checkbox:
+                st.write("---")
+                st.write("Model — Prediction — Probability for predicted label (if available)")
+                input_df = pd.DataFrame([[age, sex, bp, chol, na, k]],
+                                        columns=['Age','Sex','BP','Cholesterol','Na','K'])
+                for name, pipe in st.session_state["ensemble_models"]:
+                    try:
+                        p = pipe.predict(input_df)[0]
+                    except Exception:
+                        p = "error"
+                    prob_str = ""
+                    try:
+                        probs = pipe.predict_proba(input_df)[0]
+                        if p in pipe.classes_:
+                            idx = list(pipe.classes_).index(p)
+                            prob_str = f"{probs[idx]*100:.2f}%"
+                        else:
+                            prob_str = "0.00%"
+                    except Exception:
+                        prob_str = "n/a"
+                    st.write(f"{name} — {p} — {prob_str}")
+
+    # RIGHT: chatbot using the SAME ensemble (no separate model selection)
+    with right_col:
+        st.write("### 💬 Smart Drug Assistant")
+        st.write("Ask about drugs, or use current predictor inputs to get ensemble recommendation (same as left).")
+
+        if "chat_history" not in st.session_state:
+            st.session_state["chat_history"] = []
+
+        # free-text question
+        user_q = st.text_input("Type a question (e.g. 'Which drug for high BP?')", key="chat_input")
+        col_a, col_b = st.columns([1, 1])
+        with col_a:
+            send_btn = st.button("Send")
+        with col_b:
+            use_predictor_btn = st.button("Predict using current inputs")
+
+        if send_btn and user_q:
+            q = user_q.strip().lower()
+            reply = ""
+            # simple rule-based responses + guidance
+            if "bp" in q or "blood pressure" in q:
+                reply = ("High BP is often treated with drugs such as Amlodipine, Losartan or Atenolol. "
+                         "Use the Predictor (left) with patient values for a data-driven recommendation.")
+            elif "cholesterol" in q:
+                reply = "High cholesterol is commonly treated with statins such as Atorvastatin."
+            elif "why" in q and ("drug" in q or "predict" in q):
+                reply = "Prediction is based on Age, Sex, BP, Cholesterol, Sodium (Na) and Potassium (K) using an ensemble of ML models."
+            elif "side effect" in q or "side-effect" in q or "sideeffects" in q:
+                reply = "Ask me which drug and I can show common side effects from the Drug Information page."
+            else:
+                reply = "I can explain drug choices, side effects, or run the ensemble prediction using current Predictor inputs. Try 'predict' or 'bp' or ask about a drug name."
+
+            st.session_state["chat_history"].append(("You", user_q))
+            st.session_state["chat_history"].append(("Bot", reply))
+
+        if use_predictor_btn:
+            # use current predictor inputs stored in session_state.predictor_inputs
+            inputs = st.session_state.get("predictor_inputs")
+            if inputs is None:
+                st.warning("No predictor inputs available. Fill the Predictor form first.")
+            else:
+                input_df = pd.DataFrame([[inputs["Age"], inputs["Sex"], inputs["BP"], inputs["Cholesterol"], inputs["Na"], inputs["K"]]],
+                                        columns=['Age','Sex','BP','Cholesterol','Na','K'])
+                final_pred, confidence, top3 = ensemble_predict(st.session_state["ensemble_models"], input_df)
+                if final_pred is None:
+                    bot_reply = "Prediction failed. Please try again."
+                else:
+                    if confidence is not None:
+                        bot_reply = f"Ensemble suggests **{final_pred}** with **{confidence:.2f}%** confidence. Top choices: " + \
+                                    ", ".join([f"{lab} ({p*100:.2f}%)" for lab, p in top3])
+                    else:
+                        bot_reply = f"Ensemble suggests **{final_pred}** (confidence not available)."
+                st.session_state["chat_history"].append(("You", "Predict using current inputs"))
+                st.session_state["chat_history"].append(("Bot", bot_reply))
+
+        # show history
+        if st.session_state["chat_history"]:
+            st.write("---")
+            for who, text in st.session_state["chat_history"][-8:]:
+                if who == "You":
+                    st.markdown(f"**You:** {text}")
+                else:
+                    st.markdown(f"**Bot:** {text}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------
 # Drug Information page
-# -------------------------
+# ---------------------------
 if page == "Drug Information":
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.subheader("💊 Drug Information")
-    st.write("Detailed descriptions of drugs available in the model.")
     for name, info in drug_details.items():
         with st.expander(f"📌 {name}"):
             st.markdown(f"**Use:** {info['use']}")
@@ -365,55 +465,52 @@ if page == "Drug Information":
             st.markdown(f"**Dosage:** {info['dosage']}")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------
-# Admin page (in-memory users)
-# -------------------------
+# ---------------------------
+# Admin page (in-memory user management)
+# ---------------------------
 if page == "Admin":
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("👤 Admin — User Management (in-memory)")
-    st.write("Current users:")
-    for u in USERS.keys():
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.subheader("👤 Admin — User Management")
+    st.write("Current users (in-memory):")
+    for u in USERS:
         st.write("•", u)
-    st.markdown("---")
-    st.write("### Add new user (in-memory)")
-    new_user = st.text_input("Username", key="add_user")
-    new_pass = st.text_input("Password", type="password", key="add_pass")
+    st.write("---")
+    st.write("Add user")
+    new_user = st.text_input("Username", key="admin_new_user")
+    new_pass = st.text_input("Password", key="admin_new_pass")
     if st.button("Add User"):
         if not new_user or not new_pass:
-            st.error("Provide username and password.")
+            st.error("Provide both username and password.")
         elif new_user in USERS:
             st.error("User already exists.")
         else:
             USERS[new_user] = new_pass
-            st.success("User added (in-memory).")
-            st.rerun()
-    st.markdown("---")
-    st.write("### Remove user")
-    removable = [u for u in USERS.keys() if u != "admin"]
-    if removable:
-        remove_user = st.selectbox("Select user to remove", removable, key="remove_user")
-        if st.button("Remove User"):
+            st.success(f"User '{new_user}' added (in-memory).")
+    st.write("---")
+    st.write("Remove user")
+    remove_user = st.selectbox("Select user", list(USERS.keys()), key="admin_remove")
+    if st.button("Delete User"):
+        if remove_user == "admin":
+            st.error("Cannot remove main admin.")
+        else:
             USERS.pop(remove_user, None)
-            st.success("User removed.")
-            st.rerun()
-    else:
-        st.info("No removable users.")
+            st.success(f"User '{remove_user}' removed (in-memory).")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------------------------
+# ---------------------------
 # About page
-# -------------------------
+# ---------------------------
 if page == "About":
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.subheader("ℹ️ About Smart Drug Shield")
-    st.markdown(f"""
-    **Smart Drug Shield** is an educational demo: an AI-driven drug prescription classifier built for learning and demonstration.
-    - Dataset loaded from: `{DATA_SOURCE}`
-    - Models available: Logistic Regression, KNN, Decision Tree, Random Forest, SVM {(' + XGBoost' if HAS_XGB else '')}{(' + LightGBM' if HAS_LGB else '')}
-    - Designed with a medical AI theme (blue + green + white).
+    st.markdown("""
+    **Smart Drug Shield** is an educational demo that predicts a suitable drug from patient features:
+    Age, Sex, Blood Pressure, Cholesterol, Sodium (Na), Potassium (K).
+
+    Key features:
+    - Ensemble (majority vote) ensures the *same recommendation* across UI and chatbot.
+    - Confidence derived from averaging probabilities from models that provide them.
+    - Multi-user login (in-memory users), Admin panel, Drug information.
+    - **Not a clinical tool** — for learning and demonstration only.
     """)
     st.markdown('</div>', unsafe_allow_html=True)
-
-# -------------------------
-# --- End of app.py ---
-# -------------------------
