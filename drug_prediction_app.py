@@ -82,40 +82,90 @@ except Exception as e:
 # ---------------------------
 drug_details = {
     "Amlodipine": {
-        "use": "Lowers blood pressure by relaxing blood vessels (calcium channel blocker).",
-        "mechanism": "Calcium channel blocker.",
-        "side_effects": [("Dizziness","Mild"), ("Edema","Moderate"), ("Headache","Mild")],
-        "precautions": "Monitor BP; report severe dizziness or swelling.",
-        "dosage": "5–10 mg once daily."
-    },
+    "use": "Used to lower blood pressure and treat angina.",
+    "mechanism": "Calcium channel blocker that relaxes blood vessels and improves blood flow.",
+    "side_effects": ["Swelling of ankles", "Dizziness", "Fatigue", "Headache"],
+    "precautions": "Use caution in liver disease; avoid sudden standing due to dizziness.",
+    "dosage": "5–10 mg once daily.",
+    "food_to_eat": ["Leafy greens", "Bananas", "Whole grains", "Low-salt foods"],
+    "food_to_avoid": ["Grapefruit juice", "High-sodium foods", "Alcohol"],
+    "drug_interactions": [
+        "Simvastatin (increases risk of muscle damage)",
+        "Blood pressure medicines (may lead to hypotension)",
+        "Antifungals (increase Amlodipine levels)"
+    ],
+    "adverse_reactions": ["Severe leg swelling", "Shortness of breath", "Irregular heartbeat"],
+    "hospitality_risk": "Moderate — hospital attention required if severe swelling or chest pain occurs."
+},
+
     "Atenolol": {
-        "use": "Used for blood pressure control and heart rate reduction (beta-blocker).",
-        "mechanism": "Selective β1-blocker.",
-        "side_effects": [("Fatigue","Mild"), ("Bradycardia","Moderate"), ("Cold extremities","Mild")],
-        "precautions": "Avoid in asthma; monitor heart rate.",
-        "dosage": "50 mg once daily."
-    },
+    "use": "Used for blood pressure control and heart rate reduction.",
+    "mechanism": "Beta-1 blocker that reduces heart workload.",
+    "side_effects": ["Fatigue", "Cold hands/feet", "Slow heart rate"],
+    "precautions": "Avoid in asthma; taper slowly—do not stop suddenly.",
+    "dosage": "25–50 mg daily.",
+    "food_to_eat": ["High-fiber foods", "Fruits and vegetables"],
+    "food_to_avoid": ["High-salt foods", "Caffeine", "Alcohol"],
+    "drug_interactions": [
+        "Calcium channel blockers (risk of severe bradycardia)",
+        "Insulin (may mask low blood sugar symptoms)",
+        "NSAIDs (reduce BP effect)"
+    ],
+    "adverse_reactions": ["Very slow heartbeat", "Breathing difficulty", "Fainting"],
+    "hospitality_risk": "High — emergency care needed if heart rate becomes dangerously low."
+},
+
     "ORS-K": {
-        "use": "Oral rehydration / electrolyte replacement for sodium–potassium balance.",
-        "mechanism": "Replenishes Na+ and K+.",
-        "side_effects": [("Nausea","Mild"), ("Bloating","Mild")],
-        "precautions": "Monitor electrolytes in severe cases.",
-        "dosage": "As required."
-    },
+    "use": "Restores sodium–potassium balance in dehydration.",
+    "mechanism": "Replenishes electrolytes lost from sweat, diarrhea, fever.",
+    "side_effects": ["Nausea", "Stomach bloating"],
+    "precautions": "Avoid excess potassium intake.",
+    "dosage": "As required depending on dehydration level.",
+    "food_to_eat": ["Coconut water", "Bananas", "Rice porridge"],
+    "food_to_avoid": ["Excess salty snacks", "High-sugar drinks"],
+    "drug_interactions": [
+        "ACE inhibitors (risk of hyperkalemia)",
+        "Potassium supplements",
+        "NSAIDs (may increase potassium)"
+    ],
+    "adverse_reactions": ["Severe vomiting", "High potassium leading to heart rhythm issues"],
+    "hospitality_risk": "Low — but rises to moderate if potassium levels spike."
+},
+
     "Atorvastatin": {
-        "use": "Lowers LDL cholesterol and cardiovascular risk.",
-        "mechanism": "HMG-CoA reductase inhibitor (statin).",
-        "side_effects": [("Muscle pain","Moderate"), ("Liver enzyme changes","Severe")],
-        "precautions": "Check liver enzymes; avoid during pregnancy.",
-        "dosage": "10–20 mg in the evening."
-    },
+    "use": "Used for lowering cholesterol and reducing cardiac risk.",
+    "mechanism": "Inhibits HMG-CoA reductase to reduce LDL cholesterol.",
+    "side_effects": ["Muscle pain", "Liver enzyme elevation"],
+    "precautions": "Avoid in liver disease; monitor cholesterol and liver enzymes.",
+    "dosage": "10–20 mg once daily (evening).",
+    "food_to_eat": ["Oats", "Nuts", "Olive oil", "Fatty fish"],
+    "food_to_avoid": ["Grapefruit juice", "High-fat meals", "Alcohol"],
+    "drug_interactions": [
+        "Amlodipine (increases statin levels)",
+        "Antibiotics like clarithromycin",
+        "Antifungals"
+    ],
+    "adverse_reactions": ["Severe muscle breakdown (rare)", "Liver injury"],
+    "hospitality_risk": "Moderate — serious muscle pain requires evaluation."
+},
+
     "Losartan": {
-        "use": "Used to treat high blood pressure (angiotensin receptor blocker).",
-        "mechanism": "Blocks angiotensin II receptors causing vasodilation.",
-        "side_effects": [("Dizziness","Mild"), ("Increased potassium","Moderate")],
-        "precautions": "Avoid during pregnancy; monitor potassium.",
-        "dosage": "25–50 mg once daily."
-    }
+    "use": "Used to treat high blood pressure and kidney protection in diabetes.",
+    "mechanism": "Blocks angiotensin II receptors, causing vasodilation.",
+    "side_effects": ["Dizziness", "High potassium"],
+    "precautions": "Avoid in pregnancy; monitor potassium and kidney function.",
+    "dosage": "25–50 mg once daily.",
+    "food_to_eat": ["Low-salt foods", "Berries", "Garlic"],
+    "food_to_avoid": ["Potassium-rich salt substitutes", "Bananas", "Tomatoes"],
+    "drug_interactions": [
+        "Potassium supplements (hyperkalemia)",
+        "ACE inhibitors",
+        "NSAIDs (reduce effectiveness)"
+    ],
+    "adverse_reactions": ["Severe kidney issues", "Very high potassium", "Fainting"],
+    "hospitality_risk": "High — severe electrolyte imbalance needs medical attention."
+},
+
 }
 
 # ---------------------------
