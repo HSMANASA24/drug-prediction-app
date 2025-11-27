@@ -560,15 +560,24 @@ with tab_chatbot:
                 st.session_state["chat_history"].append(("You", "Predict (Chatbot RF)"))
                 st.session_state["chat_history"].append(("Bot", bot_reply))
 
-    # show recent chat
-    if st.session_state.get("chat_history"):
-        st.markdown("---")
-        for who, msg in st.session_state["chat_history"][-12:]:
-            if who == "You":
-                st.markdown(f"**You:** {msg}")
-            else:
-                st.markdown(f"**Bot:** {msg}")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # -------------------------------------------------
+# Sidebar Navigation (MUST COME AFTER LOGIN)
+# -------------------------------------------------
+if st.session_state["authenticated"]:
+
+    with st.sidebar:
+        st.header(f"Welcome, {st.session_state['username']}")
+
+        page = st.radio(
+            "📄 Navigate",
+            ["Predictor", "Drug Information", "Admin", "About"]
+        )
+
+        if st.button("Logout"):
+            st.session_state["authenticated"] = False
+            st.session_state["username"] = None
+            st.experimental_rerun()
+
 
 if page == "Drug Information":
     for drug, info in drug_details.items():
