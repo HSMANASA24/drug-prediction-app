@@ -82,91 +82,172 @@ except Exception as e:
 # ---------------------------
 drug_details = {
     "Amlodipine": {
-    "use": "Used to lower blood pressure and treat angina.",
-    "mechanism": "Calcium channel blocker that relaxes blood vessels and improves blood flow.",
-    "side_effects": ["Swelling of ankles", "Dizziness", "Fatigue", "Headache"],
-    "precautions": "Use caution in liver disease; avoid sudden standing due to dizziness.",
-    "dosage": "5–10 mg once daily.",
-    "food_to_eat": ["Leafy greens", "Bananas", "Whole grains", "Low-salt foods"],
-    "food_to_avoid": ["Grapefruit juice", "High-sodium foods", "Alcohol"],
-    "drug_interactions": [
-        "Simvastatin (increases risk of muscle damage)",
-        "Blood pressure medicines (may lead to hypotension)",
-        "Antifungals (increase Amlodipine levels)"
-    ],
-    "adverse_reactions": ["Severe leg swelling", "Shortness of breath", "Irregular heartbeat"],
-    "hospitality_risk": "Moderate — hospital attention required if severe swelling or chest pain occurs."
-},
+        "use": "Used to lower blood pressure and treat angina.",
+        "mechanism": "Calcium channel blocker that relaxes peripheral blood vessels, reducing afterload.",
+        "side_effects": [
+            "Peripheral edema (ankle swelling)",
+            "Dizziness",
+            "Flushing",
+            "Fatigue",
+            "Headache"
+        ],
+        "precautions": "Use caution in severe hepatic impairment; avoid rapid posture changes to reduce dizziness.",
+        "dosage": "Typical 5–10 mg once daily (adjust per clinician).",
+        "food_to_eat": [
+            "Leafy green vegetables",
+            "Whole grains",
+            "Low-salt foods",
+            "Fresh fruits"
+        ],
+        "food_to_avoid": [
+            "Grapefruit juice (may increase drug levels)",
+            "High-sodium / high-salt processed foods",
+            "Excess alcohol"
+        ],
+        "drug_interactions": [
+            "Simvastatin (co-administration may increase statin levels)",
+            "Other antihypertensives (additive blood pressure lowering)",
+            "Strong CYP3A4 inhibitors (may raise amlodipine concentrations)"
+        ],
+        "adverse_reactions": [
+            "Severe leg swelling",
+            "Marked hypotension",
+            "Allergic reactions (rare)"
+        ],
+        "hospitality_risk": "Moderate — seek immediate care when severe hypotension, chest pain, or marked swelling occurs."
+    },
 
     "Atenolol": {
-    "use": "Used for blood pressure control and heart rate reduction.",
-    "mechanism": "Beta-1 blocker that reduces heart workload.",
-    "side_effects": ["Fatigue", "Cold hands/feet", "Slow heart rate"],
-    "precautions": "Avoid in asthma; taper slowly—do not stop suddenly.",
-    "dosage": "25–50 mg daily.",
-    "food_to_eat": ["High-fiber foods", "Fruits and vegetables"],
-    "food_to_avoid": ["High-salt foods", "Caffeine", "Alcohol"],
-    "drug_interactions": [
-        "Calcium channel blockers (risk of severe bradycardia)",
-        "Insulin (may mask low blood sugar symptoms)",
-        "NSAIDs (reduce BP effect)"
-    ],
-    "adverse_reactions": ["Very slow heartbeat", "Breathing difficulty", "Fainting"],
-    "hospitality_risk": "High — emergency care needed if heart rate becomes dangerously low."
-},
+        "use": "Used for blood pressure control, angina, and heart rate management.",
+        "mechanism": "Selective β1-adrenergic blocker that reduces heart rate and myocardial oxygen demand.",
+        "side_effects": [
+            "Fatigue",
+            "Bradycardia (slow heart rate)",
+            "Cold extremities",
+            "Dizziness"
+        ],
+        "precautions": "Avoid in patients with asthma or severe COPD; taper gradually when discontinuing to avoid rebound tachycardia/angina.",
+        "dosage": "Typical 25–100 mg once daily depending on indication.",
+        "food_to_eat": [
+            "High-fiber foods",
+            "Plenty of vegetables and fruits",
+            "Whole grains"
+        ],
+        "food_to_avoid": [
+            "High-sodium foods",
+            "Excessive caffeine",
+            "Excess alcohol"
+        ],
+        "drug_interactions": [
+            "Calcium channel blockers (e.g., verapamil) — risk of severe bradycardia",
+            "Antiarrhythmics (additive cardiac effects)",
+            "Insulin and oral hypoglycemics — may mask hypoglycemia symptoms"
+        ],
+        "adverse_reactions": [
+            "Severe bradycardia",
+            "Worsening heart failure in some patients",
+            "Bronchospasm (in susceptible individuals)"
+        ],
+        "hospitality_risk": "High — emergency care needed for dangerously low heart rate, syncope, or severe bronchospasm."
+    },
 
     "ORS-K": {
-    "use": "Restores sodium–potassium balance in dehydration.",
-    "mechanism": "Replenishes electrolytes lost from sweat, diarrhea, fever.",
-    "side_effects": ["Nausea", "Stomach bloating"],
-    "precautions": "Avoid excess potassium intake.",
-    "dosage": "As required depending on dehydration level.",
-    "food_to_eat": ["Coconut water", "Bananas", "Rice porridge"],
-    "food_to_avoid": ["Excess salty snacks", "High-sugar drinks"],
-    "drug_interactions": [
-        "ACE inhibitors (risk of hyperkalemia)",
-        "Potassium supplements",
-        "NSAIDs (may increase potassium)"
-    ],
-    "adverse_reactions": ["Severe vomiting", "High potassium leading to heart rhythm issues"],
-    "hospitality_risk": "Low — but rises to moderate if potassium levels spike."
-},
+        "use": "Oral rehydration and electrolyte therapy to correct sodium–potassium balance in dehydration or electrolyte loss.",
+        "mechanism": "Replenishes fluids and electrolytes (sodium and potassium) to restore homeostasis.",
+        "side_effects": [
+            "Mild nausea",
+            "Bloating",
+            "Transient abdominal discomfort"
+        ],
+        "precautions": "Monitor serum electrolytes in patients with renal impairment or on potassium-raising drugs; avoid excess potassium intake.",
+        "dosage": "Use as needed per dehydration severity and clinical guidance (follow manufacturer/clinical protocol).",
+        "food_to_eat": [
+            "Coconut water (natural electrolytes)",
+            "Bananas (potassium source)",
+            "Rice porridge / broths (gentle hydration)"
+        ],
+        "food_to_avoid": [
+            "Highly salted processed snacks",
+            "High-sugar drinks (can worsen dehydration if hyperosmolar)",
+            "Excess potassium-rich foods if on potassium-sparing drugs"
+        ],
+        "drug_interactions": [
+            "ACE inhibitors / ARBs (risk of hyperkalemia)",
+            "Potassium supplements (additive effect)",
+            "NSAIDs (can reduce renal potassium excretion)"
+        ],
+        "adverse_reactions": [
+            "Hyperkalemia in susceptible patients (palpitations, weakness)",
+            "Severe vomiting/diarrhea if poorly tolerated"
+        ],
+        "hospitality_risk": "Low if used appropriately; increases to moderate/high if hyperkalemia develops or severe dehydration persists."
+    },
 
     "Atorvastatin": {
-    "use": "Used for lowering cholesterol and reducing cardiac risk.",
-    "mechanism": "Inhibits HMG-CoA reductase to reduce LDL cholesterol.",
-    "side_effects": ["Muscle pain", "Liver enzyme elevation"],
-    "precautions": "Avoid in liver disease; monitor cholesterol and liver enzymes.",
-    "dosage": "10–20 mg once daily (evening).",
-    "food_to_eat": ["Oats", "Nuts", "Olive oil", "Fatty fish"],
-    "food_to_avoid": ["Grapefruit juice", "High-fat meals", "Alcohol"],
-    "drug_interactions": [
-        "Amlodipine (increases statin levels)",
-        "Antibiotics like clarithromycin",
-        "Antifungals"
-    ],
-    "adverse_reactions": ["Severe muscle breakdown (rare)", "Liver injury"],
-    "hospitality_risk": "Moderate — serious muscle pain requires evaluation."
-},
+        "use": "Used for lowering LDL cholesterol and reducing cardiovascular risk.",
+        "mechanism": "HMG-CoA reductase inhibitor (statin) that reduces hepatic cholesterol synthesis and lowers LDL.",
+        "side_effects": [
+            "Muscle aches or myalgia",
+            "Mild elevation of liver enzymes"
+        ],
+        "precautions": "Avoid in active liver disease or during pregnancy; monitor liver enzymes and counsel on reporting severe muscle pain.",
+        "dosage": "Typical starting dose 10–20 mg once daily (evening); titrate as needed.",
+        "food_to_eat": [
+            "Oats and high-fiber foods",
+            "Fatty fish (omega-3 sources)",
+            "Vegetables, fruits, nuts"
+        ],
+        "food_to_avoid": [
+            "Grapefruit juice (increases risk of toxicity)",
+            "Excessive alcohol",
+            "Very high-fat meals"
+        ],
+        "drug_interactions": [
+            "Certain macrolide antibiotics (e.g., clarithromycin) — increase statin levels",
+            "Antifungals (e.g., ketoconazole)",
+            "Some HIV protease inhibitors and other CYP3A4 inhibitors",
+            "Fibrates (increased myopathy risk)"
+        ],
+        "adverse_reactions": [
+            "Rhabdomyolysis (rare but serious)",
+            "Severe liver injury (rare)"
+        ],
+        "hospitality_risk": "Moderate — hospitalization may be required for severe muscle breakdown or acute liver injury."
+    },
 
     "Losartan": {
-    "use": "Used to treat high blood pressure and kidney protection in diabetes.",
-    "mechanism": "Blocks angiotensin II receptors, causing vasodilation.",
-    "side_effects": ["Dizziness", "High potassium"],
-    "precautions": "Avoid in pregnancy; monitor potassium and kidney function.",
-    "dosage": "25–50 mg once daily.",
-    "food_to_eat": ["Low-salt foods", "Berries", "Garlic"],
-    "food_to_avoid": ["Potassium-rich salt substitutes", "Bananas", "Tomatoes"],
-    "drug_interactions": [
-        "Potassium supplements (hyperkalemia)",
-        "ACE inhibitors",
-        "NSAIDs (reduce effectiveness)"
-    ],
-    "adverse_reactions": ["Severe kidney issues", "Very high potassium", "Fainting"],
-    "hospitality_risk": "High — severe electrolyte imbalance needs medical attention."
-},
-
+        "use": "Used to treat high blood pressure and to protect kidneys in some patients with diabetes.",
+        "mechanism": "Angiotensin II receptor blocker (ARB) that causes vasodilation and reduces aldosterone-mediated sodium retention.",
+        "side_effects": [
+            "Dizziness (particularly on standing)",
+            "Hyperkalemia (elevated potassium)"
+        ],
+        "precautions": "Contraindicated in pregnancy; monitor renal function and potassium levels, especially with other RAAS-modifying drugs.",
+        "dosage": "Typical 25–50 mg once daily (adjust per blood pressure response).",
+        "food_to_eat": [
+            "Low-salt diet",
+            "Fresh fruits and vegetables",
+            "Potassium-moderate foods (unless hyperkalemia risk)"
+        ],
+        "food_to_avoid": [
+            "Potassium-rich salt substitutes (may increase potassium)",
+            "Excess bananas/tomato products if already hyperkalemic",
+            "Excess alcohol"
+        ],
+        "drug_interactions": [
+            "ACE inhibitors (do not combine routinely)",
+            "Potassium supplements or potassium-sparing diuretics (risk of hyperkalemia)",
+            "NSAIDs (may reduce antihypertensive effect and affect kidneys)"
+        ],
+        "adverse_reactions": [
+            "Significant hyperkalemia",
+            "Acute kidney injury in susceptible patients",
+            "Severe hypotension (rare)"
+        ],
+        "hospitality_risk": "High — severe electrolyte disturbances or kidney injury require urgent hospital evaluation."
+    }
 }
+
 
 # ---------------------------
 # Compatibility helper for OneHotEncoder param differences
