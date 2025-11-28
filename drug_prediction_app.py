@@ -579,35 +579,45 @@ if st.session_state["authenticated"]:
             st.experimental_rerun()
 
 
+# -------------------------
+# Drug Information Page
+# -------------------------
 if page == "Drug Information":
-    for drug, info in drug_details.items():
-        with st.expander(f"📌 {drug_name}"):
-            st.markdown(f"**Use:** {d['use']}")
-            st.markdown(f"**Mechanism:** {d['mechanism']}")
+    st.title("💊 Drug Information")
 
-            st.markdown("### Side Effects")
-            for s in d['side_effects']:
+    for drug_name, d in drug_details.items():
+        with st.expander(f"📌 {drug_name}"):
+
+            st.markdown(f"### ✔ Use")
+            st.write(d["use"])
+
+            st.markdown("### ⚙ Mechanism")
+            st.write(d["mechanism"])
+
+            st.markdown("### ⚠ Side Effects")
+            for s in d["side_effects"]:
                 st.write(f"• {s}")
 
-            st.markdown("### Foods to Avoid")
-            for f in d['avoid_foods']:
+            st.markdown("### 🚫 Foods to Avoid")
+            for f in d["avoid_foods"]:
                 st.write(f"• {f}")
 
-            st.markdown("### Foods to Eat")
-            for f in d['recommended_foods']:
+            st.markdown("### 🥗 Foods to Eat")
+            for f in d["recommended_foods"]:
                 st.write(f"• {f}")
 
-            st.markdown("### Drug Interactions")
-            for inter in d['interactions']:
+            st.markdown("### 💊 Drug Interactions")
+            for inter in d["interactions"]:
                 st.write(f"• {inter}")
 
-            st.markdown("### Adverse Drug Reactions")
-            for a in d['adr']:
+            st.markdown("### ❗ Adverse Drug Reactions (ADR)")
+            for a in d["adr"]:
                 st.write(f"• {a}")
 
-            st.markdown("### Hospitalization Risks")
-            for h in d['hospital_risk']:
+            st.markdown("### 🏥 Hospitalization Risks")
+            for h in d["hospital_risk"]:
                 st.write(f"• {h}")
+
 
 
     
