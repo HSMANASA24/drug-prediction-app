@@ -472,8 +472,9 @@ with tab_predictor:
                     st.write(f"**Use:** {d['use']}")
                     st.write(f"**Mechanism:** {d['mechanism']}")
                     st.write("**Side effects (severity):**")
-                    for s, sev in d['side_effects']:
-                        st.write(f"- {s} ({sev})")
+                    for s in d['side_effects']:
+                        st.write(f"• {s}")
+
                     st.write(f"**Precautions:** {d['precautions']}")
                     st.write(f"**Dosage:** {d['dosage']}")
 
@@ -588,7 +589,7 @@ if page == "Drug Information":
     for drug_name, d in drug_details.items():
         with st.expander(f"📌 {drug_name}"):
 
-            st.markdown(f"### ✔ Use")
+            st.markdown("### ✔ Use")
             st.write(d["use"])
 
             st.markdown("### ⚙ Mechanism")
@@ -606,7 +607,7 @@ if page == "Drug Information":
             for f in d["recommended_foods"]:
                 st.write(f"• {f}")
 
-            st.markdown("### 💊 Drug Interactions")
+            st.markdown("### 🔄 Drug Interactions")
             for inter in d["interactions"]:
                 st.write(f"• {inter}")
 
