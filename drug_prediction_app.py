@@ -1,72 +1,61 @@
-# app.py - Smart Drug Shield (NL prediction, persisted models -> models/, Chatbot uses RF)
+# app.py - Smart Drug Shield (Complete, CSV-only fallback to GitHub RAW)
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import secrets
 import re
-import joblib
 from pathlib import Path
-from datetime import datetime
-from collections import Counter
-
-# ML imports
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-# plotting
-import matplotlib.pyplot as plt
+# ---------------------------
+# App config
+# ---------------------------
+st.set_page_config(page_title="🛡 Smart Drug Shield", page_icon="💊", layout="centered")
+st.title("🛡 Smart Drug Shield")
+st.markdown("<p style='text-align:center; color:#0b6f6f;'><b>AI-powered drug prescription classifier — Medical theme</b></p>", unsafe_allow_html=True)
 
 # ---------------------------
-# App config & basic UI CSS
+# Simple CSS (medical theme)
 # ---------------------------
-st.set_page_config(layout="wide", page_title="🛡 Smart Drug Shield", page_icon="💊")
-
-# simple glass + medical theme
-st.markdown(
-    """
-    <style>
-    body { background: linear-gradient(135deg,#e8f9ff,#f1fff0); }
-    .glass { background: rgba(255,255,255,0.90); border-radius:12px; padding:16px; box-shadow:0 8px 30px rgba(0,0,0,0.06); border:1px solid rgba(190,233,255,0.6); }
-    h1,h2,h3,h4 { color:#0A3D62 !important; font-weight:800; }
-    .stButton>button { background-color:#0A3D62 !important; color:white !important; border-radius:8px !important; padding:8px 12px !important; }
-    .small-muted { color:#145A32; font-size:12px; opacity:0.9; }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<style>
+.glass { backdrop-filter: blur(6px); background: rgba(255,255,255,0.92); border-radius:12px; padding:14px; margin-bottom:12px; }
+h1,h2,h3,h4 { font-weight:800; color:#034f4f; }
+.stButton>button { border-radius:8px !important; padding:8px 12px !important; background-color:#028090 !important; color:white !important; }
+.stTextInput>div>input { border-radius:8px !important; }
+section[data-testid="stSidebar"] { background: #f7fdfd !important; }
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------------------
-# Paths and persistence (writable folder)
+# Dataset paths - CSV only (local first, else GitHub RAW)
 # ---------------------------
-MODEL_DIR = Path("models")
-try:
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-except Exception:
-    # fallback to current directory
-    MODEL_DIR = Path(".")
-ENSEMBLE_PATH = MODEL_DIR / "ensemble_models.joblib"
-RF_PATH = MODEL_DIR / "rf_model.joblib"
-
-LOCAL_CSV = Path("/mnt/data/Drug.csv")
+LOCAL_PATH = "/mnt/data/Drug.csv"
 GITHUB_RAW = "https://raw.githubusercontent.com/HSMANASA24/drug-prediction-app/c476f30acf26ddc14b6b4a7eb796786c23a23edd/Drug.csv"
 
-# ---------------------------
-# Load dataset (local or GitHub raw)
-# ---------------------------
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_dataset():
-    if LOCAL_CSV.exists():
-        df = pd.read_csv(LOCAL_CSV)
+    if os.path.exists(LOCAL_PATH):
+        df = pd.read_csv(LOCAL_PATH)
     else:
         df = pd.read_csv(GITHUB_RAW)
     df.columns = [c.strip() for c in df.columns]
-    mapping = {"drugA": "Amlodipine", "drugB": "Atenolol", "drugC": "ORS-K", "drugX": "Atorvastatin", "drugY": "Losartan"}
+    # Map original labels to meaningful drug names
+    mapping = {
+        "drugA": "Amlodipine",
+        "drugB": "Atenolol",
+        "drugC": "ORS-K",
+        "drugX": "Atorvastatin",
+        "drugY": "Losartan"
+    }
     if "Drug" in df.columns:
         df["Drug"] = df["Drug"].map(mapping).fillna(df["Drug"])
     return df
@@ -74,357 +63,81 @@ def load_dataset():
 try:
     df_full = load_dataset()
 except Exception as e:
-    st.error("Failed to load dataset: " + str(e))
+    st.error("Failed to load dataset. Check network or provide /mnt/data/Drug.csv. Error: " + str(e))
     st.stop()
 
+st.sidebar.markdown(f"**Dataset:** {Path(LOCAL_PATH).name if os.path.exists(LOCAL_PATH) else 'GitHub RAW'}")
+st.sidebar.markdown(f"Rows: **{df_full.shape[0]}** | Columns: **{df_full.shape[1]}**")
+st.sidebar.markdown("---")
+
 # ---------------------------
-# Drug details (with severity labels)
+# drug_details (fully filled, simple lists)
 # ---------------------------
 drug_details = {
     "Atorvastatin": {
         "use": "Used for lowering LDL cholesterol and reducing cardiovascular risk.",
-        "mechanism": "HMG-CoA reductase inhibitor (statin) that reduces hepatic cholesterol synthesis.",
-        "side_effects": [
-            "Muscle aches (myalgia)",
-            "Mild elevation of liver enzymes"
-        ],
-        "precautions": "Avoid in liver disease or pregnancy; monitor liver enzymes.",
-        "dosage": "10–20 mg once daily (evening).",
-        "foods_to_avoid": [
-            "Grapefruit juice",
-            "Alcohol"
-        ],
-        "foods_to_eat": [
-            "High-fiber foods",
-            "Leafy vegetables"
-        ],
-        "drug_interactions": [
-            "Certain antibiotics",
-            "HIV protease inhibitors"
-        ],
-        "adverse_reactions": [
-            "Severe muscle breakdown (rare)"
-        ],
-        "hospital_risk": "Low; liver failure or rhabdomyolysis may require admission."
+        "mechanism": "HMG-CoA reductase inhibitor (statin) that reduces hepatic cholesterol synthesis and lowers LDL.",
+        "side_effects": ["Muscle aches (myalgia)", "Mild elevation of liver enzymes"],
+        "precautions": "Avoid in active liver disease or pregnancy; monitor liver enzymes and counsel on reporting severe muscle pain.",
+        "dosage": "Typical starting dose 10–20 mg once daily (evening); titrate as needed.",
+        "foods_to_avoid": ["Grapefruit juice", "Excess alcohol", "Very high-fat meals"],
+        "foods_to_eat": ["High-fiber foods", "Fatty fish (omega-3)", "Vegetables and fruits"],
+        "drug_interactions": ["Macrolide antibiotics", "Azole antifungals", "HIV protease inhibitors", "Fibrates"],
+        "adverse_reactions": ["Rhabdomyolysis (rare)", "Severe liver injury (rare)"],
+        "hospital_risk": "Moderate — hospitalization may be required for severe muscle breakdown or acute liver injury."
     },
-
     "Losartan": {
-        "use": "Used for high blood pressure and kidney protection.",
-        "mechanism": "Angiotensin-II receptor blocker causing vasodilation.",
-        "side_effects": [
-            "Dizziness",
-            "Raised potassium"
-        ],
-        "precautions": "Avoid in pregnancy; monitor potassium.",
-        "dosage": "25–50 mg once daily.",
-        "foods_to_avoid": [
-            "High-potassium foods",
-            "Salt substitutes"
-        ],
-        "foods_to_eat": [
-            "Low-salt diet",
-            "Vegetables and fruits (except high potassium)"
-        ],
-        "drug_interactions": [
-            "Potassium supplements",
-            "NSAIDs"
-        ],
-        "adverse_reactions": [
-            "Kidney impairment",
-            "Severe low BP"
-        ],
-        "hospital_risk": "Moderate in overdose or kidney dysfunction."
+        "use": "Used for high blood pressure and kidney protection in diabetics.",
+        "mechanism": "Angiotensin-II receptor blocker (ARB) that causes vasodilation and reduces aldosterone-mediated sodium retention.",
+        "side_effects": ["Dizziness", "Hyperkalemia (raised potassium)"],
+        "precautions": "Avoid in pregnancy; monitor renal function and potassium.",
+        "dosage": "Typical 25–50 mg once daily (adjust per response).",
+        "foods_to_avoid": ["Potassium-rich salt substitutes", "Excess bananas/tomato products if hyperkalemic"],
+        "foods_to_eat": ["Low-sodium foods", "Fresh fruits and vegetables"],
+        "drug_interactions": ["Potassium supplements", "NSAIDs", "ACE inhibitors (cautious)"],
+        "adverse_reactions": ["Significant hyperkalemia", "Acute kidney injury in susceptible patients"],
+        "hospital_risk": "High if severe electrolyte disturbances or acute kidney injury occur."
     },
-
     "Atenolol": {
-        "use": "Used for blood pressure control and heart rate management.",
-        "mechanism": "Selective beta-1 blocker that reduces heart workload.",
-        "side_effects": [
-            "Fatigue",
-            "Cold extremities",
-            "Slow heartbeat"
-        ],
-        "precautions": "Avoid in asthma; monitor heart rate.",
-        "dosage": "50 mg once daily.",
-        "foods_to_avoid": [
-            "High-sodium foods",
-            "Caffeine"
-        ],
-        "foods_to_eat": [
-            "Low-salt foods",
-            "Fruits & vegetables"
-        ],
-        "drug_interactions": [
-            "Calcium channel blockers",
-            "Other beta blockers"
-        ],
-        "adverse_reactions": [
-            "Extreme bradycardia",
-            "Breathing difficulty (rare)"
-        ],
-        "hospital_risk": "Moderate if pulse drops dangerously."
+        "use": "Used for blood pressure control, angina and heart rate management.",
+        "mechanism": "Selective β1-blocker reducing heart rate and cardiac output.",
+        "side_effects": ["Fatigue", "Bradycardia (slow heart rate)", "Cold extremities"],
+        "precautions": "Avoid in asthma/COPD; taper dose before stopping to avoid rebound tachycardia/angina.",
+        "dosage": "Typical 50 mg once daily (range 25–100 mg as per indication).",
+        "foods_to_avoid": ["Excess caffeine", "High-sodium processed foods"],
+        "foods_to_eat": ["High-fiber foods", "Vegetables, fruits"],
+        "drug_interactions": ["Calcium channel blockers (additive)", "Antiarrhythmics"],
+        "adverse_reactions": ["Severe bradycardia", "Worsening heart failure in some patients"],
+        "hospital_risk": "Moderate — severe bradycardia or bronchospasm needs urgent care."
     },
-
     "ORS-K": {
-        "use": "Used for sodium–potassium imbalance and dehydration.",
-        "mechanism": "Replenishes electrolytes and restores hydration.",
-        "side_effects": [
-            "Nausea",
-            "Stomach discomfort"
-        ],
-        "precautions": "Avoid excess intake in kidney patients.",
-        "dosage": "As needed during dehydration.",
-        "foods_to_avoid": [
-            "Sugary drinks",
-            "High-salt foods"
-        ],
-        "foods_to_eat": [
-            "Soups",
-            "Hydrating fruits"
-        ],
-        "drug_interactions": [
-            "Potassium-sparing diuretics"
-        ],
-        "adverse_reactions": [
-            "High potassium (rare)"
-        ],
-        "hospital_risk": "Low unless severe dehydration occurs."
+        "use": "Oral rehydration and electrolyte therapy to correct Na+/K+ balance in dehydration.",
+        "mechanism": "Replenishes fluids and electrolytes to restore homeostasis.",
+        "side_effects": ["Nausea", "Bloating"],
+        "precautions": "Monitor serum electrolytes in renal impairment; avoid excess potassium if at risk.",
+        "dosage": "As clinically indicated per severity of dehydration/electrolyte loss.",
+        "foods_to_avoid": ["High-sugar drinks", "Very salty snacks"],
+        "foods_to_eat": ["Coconut water (natural electrolytes)", "Bananas (potassium)", "Soups, broths"],
+        "drug_interactions": ["Potassium-sparing diuretics", "ACE inhibitors/ARBs (hyperkalemia risk)"],
+        "adverse_reactions": ["Hyperkalemia in susceptible patients"],
+        "hospital_risk": "Low when used correctly; increases with renal impairment or severe dehydration."
     },
-
     "Amlodipine": {
-        "use": "Used to treat high BP and angina.",
-        "mechanism": "Calcium channel blocker that relaxes arteries.",
-        "side_effects": [
-            "Swelling in legs",
-            "Dizziness"
-        ],
-        "precautions": "Monitor BP; adjust dose in liver disease.",
-        "dosage": "5–10 mg once daily.",
-        "foods_to_avoid": [
-            "High-sodium foods",
-            "Grapefruit"
-        ],
-        "foods_to_eat": [
-            "Low-salt diets",
-            "Vegetables"
-        ],
-        "drug_interactions": [
-            "Simvastatin",
-            "Other BP medications"
-        ],
-        "adverse_reactions": [
-            "Severe swelling",
-            "Very low BP"
-        ],
-        "hospital_risk": "Low; only severe edema/hypotension needs care."
+        "use": "Used to lower blood pressure and treat angina.",
+        "mechanism": "Calcium channel blocker that dilates peripheral arteries.",
+        "side_effects": ["Peripheral edema (ankle swelling)", "Dizziness", "Flushing"],
+        "precautions": "Lower doses in hepatic impairment; avoid rapid standing to prevent dizziness.",
+        "dosage": "5–10 mg once daily (adjust per response).",
+        "foods_to_avoid": ["Grapefruit (possible interactions)", "High-sodium foods"],
+        "foods_to_eat": ["Fresh fruits and vegetables", "Whole grains", "Low-salt diet"],
+        "drug_interactions": ["Simvastatin (co-administration caution)", "Other antihypertensives (additive)"],
+        "adverse_reactions": ["Severe edema (rare)", "Marked hypotension (rare)"],
+        "hospital_risk": "Low; severe edema/hypotension may require care."
     }
 }
 
-
-
 # ---------------------------
-# Compatibility helper for OneHotEncoder param differences
-# ---------------------------
-def onehot_factory():
-    try:
-        return OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-    except TypeError:
-        return OneHotEncoder(sparse=False, handle_unknown='ignore')
-
-# ---------------------------
-# Build pipeline factory
-# ---------------------------
-def build_pipeline(estimator):
-    pre = ColumnTransformer([
-        ("num", StandardScaler(), ['Age','Na','K']),
-        ("cat", onehot_factory(), ['Sex','BP','Cholesterol'])
-    ])
-    return Pipeline([("pre", pre), ("clf", estimator)])
-
-# ---------------------------
-# Train & persist models (ensemble + RF)
-# ---------------------------
-def train_and_persist_models(df):
-    df_train = df.dropna().copy()
-    X = df_train[['Age','Sex','BP','Cholesterol','Na','K']]
-    y = df_train['Drug']
-
-    models = {
-        "Logistic Regression": LogisticRegression(max_iter=2000),
-        "KNN": KNeighborsClassifier(),
-        "Decision Tree": DecisionTreeClassifier(),
-        "Random Forest": RandomForestClassifier(),
-        "SVM": SVC(probability=True)
-    }
-
-    trained = []
-    for name, est in models.items():
-        pipe = build_pipeline(est)
-        pipe.fit(X, y)
-        trained.append((name, pipe))
-
-    # persist
-    try:
-        joblib.dump(trained, ENSEMBLE_PATH)
-    except Exception as e:
-        st.warning("Could not persist ensemble: " + str(e))
-
-    # Random Forest for chatbot
-    rf_pipe = build_pipeline(RandomForestClassifier())
-    rf_pipe.fit(X, y)
-    try:
-        joblib.dump(rf_pipe, RF_PATH)
-    except Exception as e:
-        st.warning("Could not persist RF model: " + str(e))
-
-    return trained, rf_pipe
-
-def load_models_if_exist():
-    trained = None
-    rf_pipe = None
-    if ENSEMBLE_PATH.exists():
-        try:
-            trained = joblib.load(ENSEMBLE_PATH)
-        except Exception:
-            trained = None
-    if RF_PATH.exists():
-        try:
-            rf_pipe = joblib.load(RF_PATH)
-        except Exception:
-            rf_pipe = None
-    return trained, rf_pipe
-
-# load or train
-ensemble_models, rf_model = load_models_if_exist()
-if ensemble_models is None or rf_model is None:
-    with st.spinner("Training models (first run)..."):
-        ensemble_models, rf_model = train_and_persist_models(df_full)
-
-# store in session state
-if "ensemble_models" not in st.session_state:
-    st.session_state["ensemble_models"] = ensemble_models
-if "rf_model" not in st.session_state:
-    st.session_state["rf_model"] = rf_model
-
-# ---------------------------
-# Ensemble prediction helper
-# ---------------------------
-def ensemble_predict(model_pipes, input_df):
-    preds = []
-    prob_list = []
-    for name, pipe in model_pipes:
-        try:
-            p = pipe.predict(input_df)[0]
-            preds.append(p)
-        except Exception:
-            continue
-        try:
-            proba = pipe.predict_proba(input_df)[0]
-            prob_list.append((pipe.classes_, proba))
-        except Exception:
-            pass
-    if not preds:
-        return None, None, []
-    final = Counter(preds).most_common(1)[0][0]
-    probs_for_final = []
-    for classes, proba in prob_list:
-        if final in classes:
-            idx = list(classes).index(final)
-            probs_for_final.append(proba[idx])
-    conf = float(np.mean(probs_for_final))*100.0 if probs_for_final else None
-    agg = {}
-    for classes, proba in prob_list:
-        for cls, p in zip(classes, proba):
-            agg.setdefault(cls, []).append(p)
-    avg_probs = {cls: float(np.mean(ps)) for cls, ps in agg.items()}
-    sorted_avg = sorted(avg_probs.items(), key=lambda x: x[1], reverse=True)
-    top3 = sorted_avg[:3]
-    return final, conf, top3
-
-# ---------------------------
-# Natural language parser (heuristic)
-# ---------------------------
-def parse_nl_for_features(text):
-    text = text.lower()
-    res = {"Age": None, "Sex": None, "BP": None, "Cholesterol": None, "Na": None, "K": None}
-    m = re.search(r'age\s*(?:is\s*)?(\d{1,3})', text)
-    if m:
-        age = int(m.group(1))
-        if 1 <= age <= 120:
-            res["Age"] = age
-    else:
-        m2 = re.search(r'(\d{1,3})\s*(?:years|yrs|y/o|yo)', text)
-        if m2:
-            age = int(m2.group(1))
-            if 1 <= age <= 120:
-                res["Age"] = age
-    if re.search(r'\bfemale\b|\bwoman\b|\bgirl\b', text):
-        res["Sex"] = "F"
-    elif re.search(r'\bmale\b|\bman\b|\bboy\b', text):
-        res["Sex"] = "M"
-    if "high bp" in text or "high blood pressure" in text:
-        res["BP"] = "HIGH"
-    elif "low bp" in text or "low blood pressure" in text:
-        res["BP"] = "LOW"
-    elif "normal bp" in text:
-        res["BP"] = "NORMAL"
-    if "high cholesterol" in text:
-        res["Cholesterol"] = "HIGH"
-    elif "normal cholesterol" in text:
-        res["Cholesterol"] = "NORMAL"
-    m_na = re.search(r'(?:na|sodium)\s*(?:=|:)?\s*([0-9]*\.?[0-9]+)', text)
-    if m_na:
-        try:
-            res["Na"] = float(m_na.group(1))
-        except:
-            pass
-    m_k = re.search(r'(?:k|potassium)\s*(?:=|:)?\s*([0-9]*\.?[0-9]+)', text)
-    if m_k:
-        try:
-            res["K"] = float(m_k.group(1))
-        except:
-            pass
-    floats = re.findall(r'([0-9]*\.[0-9]+)', text)
-    if res["Na"] is None and len(floats) >= 1:
-        try:
-            v = float(floats[0])
-            if 0.1 <= v <= 1.5:
-                res["Na"] = v
-        except:
-            pass
-    if res["K"] is None and len(floats) >= 2:
-        try:
-            v = float(floats[1])
-            if 0.01 <= v <= 0.5:
-                res["K"] = v
-        except:
-            pass
-    any_feature = any([res[k] is not None for k in res.keys()])
-    return res if any_feature else None
-
-# ---------------------------
-# Simple medically smart responses
-# ---------------------------
-def medical_answer(query):
-    q = query.lower()
-    if "bp" in q or "blood pressure" in q or "hypertension" in q:
-        return ("High blood pressure (hypertension) can be treated with Amlodipine, Losartan or Atenolol depending on patient details. "
-                "Use the Predictor for a data-driven recommendation.")
-    if "cholesterol" in q or "statin" in q:
-        return ("High cholesterol is often treated with statins like Atorvastatin. Monitor for muscle pain and check liver enzymes.")
-    m = re.search(r'side effects of ([a-zA-Z0-9\- ]+)', q)
-    if m:
-        drug = m.group(1).strip().title()
-        if drug in drug_details:
-            se = ', '.join([f"{s} ({sev})" for s,sev in drug_details[drug]['side_effects']])
-            return f"Common side-effects of {drug}: {se}."
-        else:
-            return f"I don't have detailed side-effect info for {drug} in the database."
-    return ("I can explain drugs and run a Random Forest prediction using the current Predictor inputs. "
-            "Try 'predict' with values, or click the Chatbot Predict button.")
-
-# ---------------------------
-# Small in-memory user list (plain text passwords per your request)
+# Simple in-memory users (plain text for demo)
 # ---------------------------
 USERS = {
     "admin": "Admin@123",
@@ -433,306 +146,398 @@ USERS = {
     "student": "Student@123"
 }
 
-# session init
+# ---------------------------
+# Session defaults
+# ---------------------------
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 if "username" not in st.session_state:
     st.session_state["username"] = None
-if "predictor_inputs" not in st.session_state:
-    st.session_state["predictor_inputs"] = None
 if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
+    st.session_state["chat_history"] = []  # list of (role, text)
 
 # ---------------------------
-# Login UI
+# Login page
 # ---------------------------
 def login_page():
-    st.markdown('<div class="glass" style="max-width:760px; margin:auto;">', unsafe_allow_html=True)
-    st.subheader("🔒 Smart Drug Shield — Login")
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("🔒 Login")
+    u = st.text_input("Username")
+    p = st.text_input("Password", type="password")
     col1, col2 = st.columns([1,1])
     with col1:
-        login_btn = st.button("Login")
+        if st.button("Login"):
+            if u in USERS and USERS[u] == p:
+                st.session_state["authenticated"] = True
+                st.session_state["username"] = u
+                st.experimental_rerun()
+            else:
+                st.error("Invalid username or password")
     with col2:
-        clear_btn = st.button("Clear")
-    if clear_btn:
-        st.session_state["authenticated"] = False
-        st.session_state["username"] = None
-        st.experimental_rerun()
-    if login_btn:
-        if user in USERS and USERS[user] == pwd:
-            st.session_state["authenticated"] = True
-            st.session_state["username"] = user
-            st.success("Login successful 🎉")
-        else:
-            st.error("Invalid username or password")
+        if st.button("Clear"):
+            st.experimental_rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
 
 if not st.session_state["authenticated"]:
     login_page()
-    st.stop()
 
 # ---------------------------
-# Top header + tabs
+# Sidebar nav
 # ---------------------------
-st.markdown("<div class='glass'><h1 style='margin:0;'>🛡 Smart Drug Shield</h1>"
-            "<p class='small-muted' style='margin:0;'>AI-powered drug prescription classifier — Medical theme</p></div>",
-            unsafe_allow_html=True)
-
-tabs = st.tabs(["Predictor", "Chatbot", "Drug Information", "Dashboard", "Admin", "About"])
-tab_predictor, tab_chatbot, tab_druginfo, tab_dashboard, tab_admin, tab_about = tabs
+with st.sidebar:
+    st.header(f"Welcome, {st.session_state['username']}")
+    page = st.radio("📄 Navigate", ["Chatbot", "Predictor", "Drug Information", "Admin", "About"])
+    st.markdown("---")
+    st.write("Dataset: uses /mnt/data/Drug.csv if present, otherwise GitHub RAW.")
+    if st.button("Logout"):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = None
+        st.session_state["chat_history"] = []
+        st.experimental_rerun()
 
 # ---------------------------
-# Predictor tab
+# Helper: OneHotEncoder compatibility
 # ---------------------------
-with tab_predictor:
-    st.markdown("<div class='glass'><h3>Predictor (Ensemble)</h3>", unsafe_allow_html=True)
-    left, right = st.columns([2,1])
+def make_onehot():
+    try:
+        return OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    except TypeError:
+        return OneHotEncoder(sparse=False, handle_unknown='ignore')
 
-    with left:
-        st.subheader("Enter patient details")
-        age = st.number_input("Age", min_value=1, max_value=120, value=45, key="p_age")
-        sex = st.selectbox("Sex", ["F","M"], key="p_sex")
-        bp = st.selectbox("Blood Pressure (BP)", ["LOW","NORMAL","HIGH"], key="p_bp")
-        chol = st.selectbox("Cholesterol", ["NORMAL","HIGH"], key="p_chol")
-        na = st.number_input("Sodium (Na)", format="%.6f", value=0.700000, key="p_na")
-        k = st.number_input("Potassium (K)", format="%.6f", value=0.050000, key="p_k")
+# ---------------------------
+# Model builder & trainer (cached)
+# ---------------------------
+@st.cache_resource
+def build_pipeline(model_name="RandomForest"):
+    df = df_full.dropna().copy()
+    X = df[['Age','Sex','BP','Cholesterol','Na','K']]
+    y = df['Drug']
 
-        st.session_state['predictor_inputs'] = {"Age": age, "Sex": sex, "BP": bp, "Cholesterol": chol, "Na": na, "K": k}
+    pre = ColumnTransformer([
+        ("num", StandardScaler(), ['Age','Na','K']),
+        ("cat", make_onehot(), ['Sex','BP','Cholesterol'])
+    ])
 
-        if st.button("Run Ensemble Prediction"):
-            input_df = pd.DataFrame([[age, sex, bp, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-            final, conf, top3 = ensemble_predict(st.session_state["ensemble_models"], input_df)
-            if final is None:
-                st.error("Ensemble prediction failed.")
+    models = {
+        "RandomForest": RandomForestClassifier(n_estimators=200, random_state=42),
+        "LogisticRegression": LogisticRegression(max_iter=2000),
+        "KNN": KNeighborsClassifier(),
+        "DecisionTree": DecisionTreeClassifier(),
+        "SVM": SVC(probability=True)
+    }
+
+    if model_name not in models:
+        model_name = "RandomForest"
+
+    pipe = Pipeline([("pre", pre), ("clf", models[model_name])])
+    pipe.fit(X, y)
+    return pipe
+
+# Build RandomForest for chatbot now
+with st.spinner("Training RandomForest for chatbot..."):
+    try:
+        rf_model = build_pipeline("RandomForest")
+    except Exception as e:
+        st.error("Model training error: " + str(e))
+        st.stop()
+
+# ---------------------------
+# Utility: parse structured patient data from text
+# ---------------------------
+def parse_patient_text(text):
+    # simple regex rules — best-effort
+    out = {}
+    # Age
+    m = re.search(r'\bage[:\s]*([0-9]{1,3})\b', text, re.IGNORECASE)
+    if not m:
+        m = re.search(r'\b([0-9]{1,3})\s*(?:years|yrs|y)\b', text, re.IGNORECASE)
+    if m:
+        out['Age'] = int(m.group(1))
+    # Sex
+    if re.search(r'\b(male|m)\b', text, re.IGNORECASE):
+        out['Sex'] = 'M'
+    elif re.search(r'\b(female|f)\b', text, re.IGNORECASE):
+        out['Sex'] = 'F'
+    # BP
+    if re.search(r'\b(high blood pressure|high bp|bp high|hypertension)\b', text, re.IGNORECASE):
+        out['BP'] = 'HIGH'
+    elif re.search(r'\b(low blood pressure|low bp|bp low|hypotension)\b', text, re.IGNORECASE):
+        out['BP'] = 'LOW'
+    elif re.search(r'\b(normal bp|bp normal|normal blood pressure)\b', text, re.IGNORECASE):
+        out['BP'] = 'NORMAL'
+    # Cholesterol
+    if re.search(r'\b(high cholesterol|cholesterol high)\b', text, re.IGNORECASE):
+        out['Cholesterol'] = 'HIGH'
+    elif re.search(r'\b(normal cholesterol|cholesterol normal)\b', text, re.IGNORECASE):
+        out['Cholesterol'] = 'NORMAL'
+    # Na and K numeric
+    m_na = re.search(r'\bna[:= ]?([0-9]*\.?[0-9]+)\b', text, re.IGNORECASE)
+    if m_na:
+        try:
+            out['Na'] = float(m_na.group(1))
+        except:
+            pass
+    m_k = re.search(r'\bk[:= ]?([0-9]*\.?[0-9]+)\b', text, re.IGNORECASE)
+    if m_k:
+        try:
+            out['K'] = float(m_k.group(1))
+        except:
+            pass
+    # look for pattern like "Na 0.7 K 0.05"
+    m_pair = re.search(r'na[: ]?([0-9]*\.?[0-9]+).*k[: ]?([0-9]*\.?[0-9]+)', text, re.IGNORECASE)
+    if m_pair:
+        try:
+            out['Na'] = float(m_pair.group(1))
+            out['K'] = float(m_pair.group(2))
+        except:
+            pass
+    return out
+
+# ---------------------------
+# Chatbot page (Option D)
+# ---------------------------
+if page == "Chatbot":
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("💬 Medical Assistant — Ask clinical questions or provide patient details")
+
+    # Show chat history
+    for role, msg in st.session_state["chat_history"]:
+        if role == "user":
+            st.markdown(f"**You:** {msg}")
+        else:
+            st.markdown(f"**Assistant:** {msg}")
+
+    # Input box
+    user_input = st.text_input("Enter your question or patient details (e.g. '45 M high BP, high cholesterol, Na 0.70 K 0.05')", key="chat_input")
+    col1, col2 = st.columns([1,1])
+    with col1:
+        if st.button("Send"):
+            if not user_input.strip():
+                st.warning("Please type something.")
             else:
-                if conf is not None:
-                    st.success(f"Ensemble recommends: **{final}** ({conf:.2f}% confidence)")
-                else:
-                    st.success(f"Ensemble recommends: **{final}** (confidence not available)")
+                # add to history
+                st.session_state["chat_history"].append(("user", user_input))
+                # process message
+                response_lines = []
+                parsed = parse_patient_text(user_input)
 
-                st.write("Top 3 (aggregated):")
-                for i,(lab,p) in enumerate(top3, start=1):
-                    st.write(f"{i}. {lab} — {p*100:.2f}%")
+                # If user asked about a specific drug
+                found_drug = None
+                for dname in drug_details.keys():
+                    # search by name case-insensitive
+                    if re.search(r'\b' + re.escape(dname) + r'\b', user_input, re.IGNORECASE):
+                        found_drug = dname
+                        break
 
-                st.markdown("**Why?** Feature summary used:")
-                st.info(f"Age: {age}  •  Sex: {sex}  •  BP: {bp}  •  Cholesterol: {chol}  •  Na: {na}  •  K: {k}")
+                if found_drug:
+                    d = drug_details[found_drug]
+                    response_lines.append(f"Information for **{found_drug}**:")
+                    response_lines.append(f"- Use: {d['use']}")
+                    response_lines.append(f"- Mechanism: {d['mechanism']}")
+                    response_lines.append(f"- Side effects: {', '.join(d['side_effects'])}")
+                    response_lines.append(f"- Precautions: {d['precautions']}")
+                    response_lines.append(f"- Dosage: {d['dosage']}")
+                elif parsed and ('Age' in parsed or 'Sex' in parsed or 'BP' in parsed or 'Cholesterol' in parsed or 'Na' in parsed or 'K' in parsed):
+                    # If structured patient data detected -> predict using RandomForest
+                    # Fill missing fields with simple defaults from median/mode
+                    median_age = int(df_full['Age'].median())
+                    default_sex = df_full['Sex'].mode()[0]
+                    default_bp = df_full['BP'].mode()[0]
+                    default_chol = df_full['Cholesterol'].mode()[0]
+                    default_na = float(df_full['Na'].median())
+                    default_k = float(df_full['K'].median())
 
-                if final in drug_details:
-                    st.markdown("---")
-                    d = drug_details[final]
-                    st.subheader(f"About {final}")
-                    st.write(f"**Use:** {d['use']}")
-                    st.write(f"**Mechanism:** {d['mechanism']}")
-                    st.write("**Side effects (severity):**")
-                    for s in d['side_effects']:
-                        st.write(f"• {s}")
+                    a = parsed.get('Age', median_age)
+                    s = parsed.get('Sex', default_sex)
+                    bpv = parsed.get('BP', default_bp)
+                    chol = parsed.get('Cholesterol', default_chol)
+                    na = parsed.get('Na', default_na)
+                    k = parsed.get('K', default_k)
 
-                    st.write(f"**Precautions:** {d['precautions']}")
-                    st.write(f"**Dosage:** {d['dosage']}")
-
-    with right:
-        st.subheader("Ensemble models")
-        st.write("Models trained and persisted (if possible).")
-        for name, _ in st.session_state["ensemble_models"]:
-            st.write("•", name)
-        st.markdown("---")
-        st.write("Dataset sample:")
-        st.dataframe(df_full.head(6))
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------
-# Chatbot tab (uses single Random Forest)
-# ---------------------------
-with tab_chatbot:
-    st.markdown("<div class='glass'><h3>💬 Smart Drug Assistant (Random Forest)</h3>", unsafe_allow_html=True)
-    st.write("Ask questions or run a RF prediction using your current Predictor inputs (chatbot uses one RF model).")
-
-    col_input, col_buttons = st.columns([3,1])
-    with col_input:
-        user_text = st.text_input("Your message:", key="chat_input_field")
-    with col_buttons:
-        send = st.button("Send")
-        predict_chat = st.button("Predict (Chatbot RF)")
-
-    if send and user_text:
-        st.session_state.setdefault("chat_history", [])
-        parsed = parse_nl_for_features(user_text)
-        if parsed:
-            st.session_state["chat_history"].append(("You", user_text))
-            st.session_state["chat_history"].append(("Bot", "I found some features in your sentence — click 'Predict (Chatbot RF)' to run prediction with these values (or I'll combine them with Predictor inputs)."))
-            st.session_state["_nl_parsed"] = parsed
-        else:
-            reply = medical_answer(user_text)
-            st.session_state["chat_history"].append(("You", user_text))
-            st.session_state["chat_history"].append(("Bot", reply))
-
-    if predict_chat:
-        st.session_state.setdefault("chat_history", [])
-        parsed = st.session_state.get("_nl_parsed")
-        if parsed and any(parsed.values()):
-            inputs = st.session_state.get("predictor_inputs", {})
-            combined = {
-                "Age": parsed.get("Age") or inputs.get("Age"),
-                "Sex": parsed.get("Sex") or inputs.get("Sex"),
-                "BP": parsed.get("BP") or inputs.get("BP"),
-                "Cholesterol": parsed.get("Cholesterol") or inputs.get("Cholesterol"),
-                "Na": parsed.get("Na") or inputs.get("Na"),
-                "K": parsed.get("K") or inputs.get("K"),
-            }
-        else:
-            combined = st.session_state.get("predictor_inputs")
-        if not combined:
-            bot_reply = "No predictor inputs available. Fill the Predictor tab or supply values in chat."
-            st.session_state["chat_history"].append(("You", "Predict (Chatbot RF)"))
-            st.session_state["chat_history"].append(("Bot", bot_reply))
-        else:
-            try:
-                in_df = pd.DataFrame([[int(combined["Age"]), combined["Sex"], combined["BP"], combined["Cholesterol"], float(combined["Na"]), float(combined["K"])]],
-                                     columns=['Age','Sex','BP','Cholesterol','Na','K'])
-            except Exception:
-                st.session_state["chat_history"].append(("You", "Predict (Chatbot RF)"))
-                st.session_state["chat_history"].append(("Bot", "Invalid/incomplete inputs for prediction."))
-                in_df = None
-            if in_df is not None:
-                try:
-                    rf = st.session_state["rf_model"]
-                    pred = rf.predict(in_df)[0]
-                    proba = None
+                    input_df = pd.DataFrame([[a, s, bpv, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
                     try:
-                        proba = rf.predict_proba(in_df)[0]
-                    except Exception:
-                        proba = None
-                    if proba is not None and pred in rf.classes_:
-                        idx = list(rf.classes_).index(pred)
-                        conf = proba[idx]*100.0
-                        bot_reply = f"Random Forest predicts **{pred}** with **{conf:.2f}%** confidence."
+                        probs = rf_model.predict_proba(input_df)[0]
+                        sorted_idx = np.argsort(probs)[::-1]
+                        top_idx = int(sorted_idx[0])
+                        top_label = rf_model.classes_[top_idx]
+                        top_conf = float(probs[top_idx])*100.0
+                        # Build response
+                        response_lines.append(f"Predicted Drug: **{top_label}** ({top_conf:.2f}% confidence) — RandomForest")
+                        # top 3 list
+                        response_lines.append("Top predictions:")
+                        for i in range(min(3, len(sorted_idx))):
+                            idx = int(sorted_idx[i])
+                            response_lines.append(f"{i+1}. {rf_model.classes_[idx]} — {probs[idx]*100.0:.2f}%")
+                        # brief explanation (feature echo)
+                        response_lines.append("Explanation (features used):")
+                        response_lines.append(f"- Age: {a}, Sex: {s}, BP: {bpv}, Cholesterol: {chol}, Na: {na}, K: {k}")
+                        # Append drug details if available
+                        if top_label in drug_details:
+                            dd = drug_details[top_label]
+                            response_lines.append(f"About **{top_label}**: {dd['use']} — Dosage: {dd['dosage']}")
+                    except Exception as e:
+                        response_lines.append("Prediction failed: " + str(e))
+                else:
+                    # General Q&A fallback: simple rule-based answers
+                    q = user_input.lower()
+                    if "what is" in q or "define" in q or "explain" in q:
+                        # try find drug name in question
+                        matched = None
+                        for name in drug_details.keys():
+                            if name.lower() in q:
+                                matched = name
+                                break
+                        if matched:
+                            d = drug_details[matched]
+                            response_lines.append(f"{matched}: {d['use']}. Mechanism: {d['mechanism']}.")
+                        else:
+                            response_lines.append("I can answer drug-related questions and make drug predictions based on patient features. Try asking about a drug name or provide patient data like '45 M high BP Na 0.70 K 0.05'.")
                     else:
-                        bot_reply = f"Random Forest predicts **{pred}** (confidence unavailable)."
-                except Exception as e:
-                    bot_reply = "Prediction error: " + str(e)
-                st.session_state["chat_history"].append(("You", "Predict (Chatbot RF)"))
-                st.session_state["chat_history"].append(("Bot", bot_reply))
+                        response_lines.append("I can: (1) predict drug from patient features, (2) give drug info. Try giving patient data or asking about a drug.")
 
-    # -------------------------------------------------
-# Sidebar Navigation (MUST COME AFTER LOGIN)
-# -------------------------------------------------
-if st.session_state["authenticated"]:
+                assistant_reply = "\n".join(response_lines)
+                st.session_state["chat_history"].append(("assistant", assistant_reply))
+                st.experimental_rerun()
 
-    with st.sidebar:
-        st.header(f"Welcome, {st.session_state['username']}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-        page = st.radio(
-            "📄 Navigate",
-            ["Predictor", "Drug Information", "Admin", "About"]
-        )
+# ---------------------------
+# Predictor page (multi-model)
+# ---------------------------
+if page == "Predictor":
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("🧪 Predictor — single patient input")
 
-        if st.button("Logout"):
-            st.session_state["authenticated"] = False
-            st.session_state["username"] = None
-            st.experimental_rerun()
+    # Model choice (multiple models)
+    model_choice = st.selectbox("Choose model", ["RandomForest", "LogisticRegression", "KNN", "DecisionTree", "SVM"])
 
+    # Train selected model (cached)
+    with st.spinner("Training selected model..."):
+        try:
+            model_pipe = build_pipeline(model_choice if model_choice != "RandomForest" else "RandomForest")
+        except Exception as e:
+            st.error("Training error: " + str(e))
+            st.stop()
 
-# -------------------------
-# Drug Information Page
-# -------------------------
+    col1, col2 = st.columns(2)
+    with col1:
+        age = st.number_input("Age", min_value=1, max_value=120, value=int(df_full['Age'].median()))
+        sex = st.selectbox("Sex", ["F","M"])
+        bpv = st.selectbox("Blood Pressure (BP)", ["LOW","NORMAL","HIGH"])
+    with col2:
+        chol = st.selectbox("Cholesterol", ["HIGH","NORMAL"])
+        na = st.number_input("Sodium (Na)", format="%.6f", value=float(df_full['Na'].median()))
+        k = st.number_input("Potassium (K)", format="%.6f", value=float(df_full['K'].median()))
+
+    if st.button("Predict (single)"):
+        input_df = pd.DataFrame([[age, sex, bpv, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
+        try:
+            pred = model_pipe.predict(input_df)[0]
+            proba = None
+            try:
+                proba = model_pipe.predict_proba(input_df)[0]
+            except Exception:
+                proba = None
+            if proba is not None:
+                sorted_idx = np.argsort(proba)[::-1]
+                top = sorted_idx[0]
+                top_label = model_pipe.classes_[int(top)]
+                top_conf = proba[int(top)]*100.0
+                st.success(f"Predicted Drug: {top_label} ({top_conf:.2f}% confidence) — {model_choice}")
+                st.write("Top 3:")
+                for i in range(min(3,len(sorted_idx))):
+                    idx = int(sorted_idx[i])
+                    st.write(f"{i+1}. {model_pipe.classes_[idx]} — {proba[idx]*100.0:.2f}%")
+            else:
+                st.success(f"Predicted Drug: {pred} — (model doesn't provide probabilities)")
+            st.info(f"Features: Age {age}, Sex {sex}, BP {bpv}, Cholesterol {chol}, Na {na}, K {k}")
+            # Show drug details if available
+            if pred in drug_details:
+                dd = drug_details[pred]
+                st.markdown("---")
+                st.markdown(f"### About {pred}")
+                st.write(dd['use'])
+                st.write("Dosage:", dd['dosage'])
+        except Exception as e:
+            st.error("Prediction error: " + str(e))
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------
+# Drug Information page
+# ---------------------------
 if page == "Drug Information":
-    st.title("💊 Drug Information")
-
-    for name, d in drug_details.items():
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("💊 Drug Information")
+    for name, info in drug_details.items():
         with st.expander(f"📌 {name}"):
-
-            st.markdown(f"### 📘 Use\n{d['use']}")
-            st.markdown(f"### ⚙️ Mechanism\n{d['mechanism']}")
-
-            st.markdown("### ⚠️ Side Effects")
-            for effect in d["side_effects"]:
-                st.write("•", effect)
-
-            st.markdown(f"### 🛡 Precautions\n{d['precautions']}")
-            st.markdown(f"### 💊 Dosage\n{d['dosage']}")
-
-            st.markdown("### 🚫 Foods to Avoid")
-            for food in d["foods_to_avoid"]:
-                st.write("•", food)
-
-            st.markdown("### ✅ Foods to Eat")
-            for food in d["foods_to_eat"]:
-                st.write("•", food)
-
-            st.markdown("### 🔗 Drug Interactions")
-            for inter in d["drug_interactions"]:
-                st.write("•", inter)
-
-            st.markdown("### ❗ Adverse Drug Reactions")
-            for adr in d["adverse_reactions"]:
-                st.write("•", adr)
-
-            st.markdown(f"### 🏥 Hospitalization Risk\n{d['hospital_risk']}")
-
-
-    
+            st.markdown(f"**Use:** {info['use']}")
+            st.markdown(f"**Mechanism:** {info['mechanism']}")
+            st.markdown("**Side effects:**")
+            for s in info['side_effects']:
+                st.write("•", s)
+            st.markdown(f"**Precautions:** {info['precautions']}")
+            st.markdown(f"**Dosage:** {info['dosage']}")
+            st.markdown("**Foods to avoid:**")
+            for f in info.get('foods_to_avoid', []):
+                st.write("•", f)
+            st.markdown("**Foods to eat:**")
+            for f in info.get('foods_to_eat', []):
+                st.write("•", f)
+            st.markdown("**Drug interactions:**")
+            for di in info.get('drug_interactions', []):
+                st.write("•", di)
+            st.markdown("**Adverse reactions:**")
+            for a in info.get('adverse_reactions', info.get('adverse_reactions', [])):
+                st.write("•", a)
+            st.markdown(f"**Hospitalization risk:** {info.get('hospital_risk','N/A')}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------
-# Dashboard tab (charts)
+# Admin page: manage in-memory users
 # ---------------------------
-with tab_dashboard:
-    st.markdown("<div class='glass'><h3>📈 Dashboard</h3>", unsafe_allow_html=True)
-    st.write("Dataset overview")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Rows", df_full.shape[0])
-    c2.metric("Unique Drugs", int(df_full['Drug'].nunique()) if 'Drug' in df_full.columns else "N/A")
-    c3.metric("Features", df_full.shape[1])
-
-    if 'Drug' in df_full.columns:
-        counts = df_full['Drug'].value_counts()
-        fig1, ax1 = plt.subplots()
-        ax1.pie(counts, labels=counts.index, autopct="%1.1f%%", startangle=90)
-        ax1.axis('equal')
-        st.pyplot(fig1)
-    else:
-        st.info("No 'Drug' column found.")
-
-    st.write("Feature histograms")
-    fig2, axes = plt.subplots(1,3, figsize=(12,3))
-    df_full['Age'].hist(ax=axes[0], bins=20)
-    axes[0].set_title("Age")
-    if 'Na' in df_full.columns:
-        df_full['Na'].hist(ax=axes[1], bins=20)
-        axes[1].set_title("Na")
-    if 'K' in df_full.columns:
-        df_full['K'].hist(ax=axes[2], bins=20)
-        axes[2].set_title("K")
-    st.pyplot(fig2)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------
-# Admin tab
-# ---------------------------
-with tab_admin:
-    st.markdown("<div class='glass'><h3>🔧 Admin</h3>", unsafe_allow_html=True)
-    st.write("Model persistence and user management (in-memory).")
-    if st.button("Retrain & Persist Models (overwrite)"):
-        with st.spinner("Retraining models..."):
-            ensemble_models, rf_model = train_and_persist_models(df_full)
-            st.session_state["ensemble_models"] = ensemble_models
-            st.session_state["rf_model"] = rf_model
-            st.success("Retrained and persisted models (if writing allowed).")
-    st.write("Model storage folder:", str(MODEL_DIR))
-    st.markdown("</div>", unsafe_allow_html=True)
+if page == "Admin":
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("👤 Admin — User Management (in-memory demo)")
+    st.write("Current users (demo):")
+    for u in list(USERS.keys()):
+        st.write("-", u)
+    st.markdown("---")
+    st.write("Add new user (in-memory only):")
+    new_u = st.text_input("Username", key="admin_new_user")
+    new_p = st.text_input("Password", key="admin_new_pass")
+    if st.button("Add user"):
+        if not new_u or not new_p:
+            st.error("Provide username and password.")
+        elif new_u in USERS:
+            st.error("User already exists.")
+        else:
+            USERS[new_u] = new_p
+            st.success("User added (in-memory).")
+    st.markdown("---")
+    st.write("Remove user:")
+    remove_u = st.selectbox("Select user to remove", list(USERS.keys()), key="admin_remove")
+    if st.button("Remove user"):
+        if remove_u == st.session_state.get("username"):
+            st.error("Cannot remove your own account while logged in.")
+        else:
+            USERS.pop(remove_u, None)
+            st.success("User removed (in-memory).")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------
-# About tab
+# About page
 # ---------------------------
-with tab_about:
-    st.markdown("<div class='glass'><h3>ℹ️ About</h3>", unsafe_allow_html=True)
-    st.write("""
-    Smart Drug Shield — educational demo.
-    - Predictor: ensemble majority vote (LR, KNN, DT, RF, SVM).
-    - Chatbot: single Random Forest model for predictions + confidence.
-    - Natural language parsing for quick inline predictions.
-    - Models persist to `models/` (inside app folder) if permitted.
-    - NOT a clinical decision tool — demonstration/learning only.
-    """)
-    st.markdown("</div>", unsafe_allow_html=True)
+if page == "About":
+    st.markdown('<div class="glass">', unsafe_allow_html=True)
+    st.subheader("ℹ️ About Smart Drug Shield")
+    st.markdown("""
+**Smart Drug Shield** is an educational demonstration app that trains classification models on a small clinical dataset and provides:
+- A **Chatbot** that can parse patient details from free text and predict a drug (RandomForest).
+- A **Predictor** page for interactive single-patient predictions using different models.
+- A **Drug Information** tab containing drug uses, mechanism, side effects, food advice, interactions and hospital risk.
+
+**Important:** This is a demo for learning only — *not* a clinical decision tool.
+""")
+    st.markdown('</div>', unsafe_allow_html=True)
