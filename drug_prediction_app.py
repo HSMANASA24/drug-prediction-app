@@ -581,36 +581,36 @@ if st.session_state["authenticated"]:
 
 if page == "Drug Information":
     for drug, info in drug_details.items():
-        with st.expander(f"📌 {drug}"):
-            st.write("**Use:**", info["use"])
-            st.write("**Mechanism:**", info["mechanism"])
+        with st.expander(f"📌 {drug_name}"):
+            st.markdown(f"**Use:** {d['use']}")
+            st.markdown(f"**Mechanism:** {d['mechanism']}")
 
-            st.markdown("### ⚠️ Side Effects")
-            for s in info["side_effects"]:
-                st.write("- " + s)
+            st.markdown("### Side Effects")
+            for s in d['side_effects']:
+                st.write(f"• {s}")
 
-            st.write("**Precautions:**", info["precautions"])
-            st.write("**Dosage:**", info["dosage"])
+            st.markdown("### Foods to Avoid")
+            for f in d['avoid_foods']:
+                st.write(f"• {f}")
 
-            st.markdown("### 🍏 Food to Eat")
-            for x in info["food_to_eat"]:
-                st.write("- " + x)
+            st.markdown("### Foods to Eat")
+            for f in d['recommended_foods']:
+                st.write(f"• {f}")
 
-            st.markdown("### 🚫 Food to Avoid")
-            for x in info["food_to_avoid"]:
-                st.write("- " + x)
+            st.markdown("### Drug Interactions")
+            for inter in d['interactions']:
+                st.write(f"• {inter}")
 
-            st.markdown("### 💊 Drug Interactions")
-            for x in info["drug_interactions"]:
-                st.write("- " + x)
+            st.markdown("### Adverse Drug Reactions")
+            for a in d['adr']:
+                st.write(f"• {a}")
 
-            st.markdown("### ⚠️ Adverse Drug Reactions (ADRs)")
-            for x in info["adverse_reactions"]:
-                st.write("- " + x)
+            st.markdown("### Hospitalization Risks")
+            for h in d['hospital_risk']:
+                st.write(f"• {h}")
 
-            st.markdown("### 🏥 Hospitality Risk")
-            st.write(info["hospitality_risk"])
 
+    
 
 # ---------------------------
 # Dashboard tab (charts)
