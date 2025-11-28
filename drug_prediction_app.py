@@ -83,150 +83,143 @@ except Exception as e:
 drug_details = {
     "Atorvastatin": {
         "use": "Used for lowering LDL cholesterol and reducing cardiovascular risk.",
-        "mechanism": "HMG-CoA reductase inhibitor (statin) that reduces hepatic cholesterol synthesis and lowers LDL.",
+        "mechanism": "HMG-CoA reductase inhibitor (statin) that reduces hepatic cholesterol synthesis.",
         "side_effects": [
             "Muscle aches (myalgia)",
             "Mild elevation of liver enzymes"
         ],
-        "precautions": "Avoid in active liver disease or pregnancy; monitor liver enzymes; report severe muscle pain.",
-        "dosage": "10–20 mg once daily (usually evening).",
+        "precautions": "Avoid in liver disease or pregnancy; monitor liver enzymes.",
+        "dosage": "10–20 mg once daily (evening).",
         "foods_to_avoid": [
             "Grapefruit juice",
-            "High-fat meals",
             "Alcohol"
         ],
         "foods_to_eat": [
             "High-fiber foods",
-            "Leafy vegetables",
-            "Whole grains"
+            "Leafy vegetables"
         ],
         "drug_interactions": [
             "Certain antibiotics",
-            "Antifungals",
             "HIV protease inhibitors"
         ],
         "adverse_reactions": [
-            "Severe muscle breakdown (rare)",
-            "Rhabdomyolysis (very rare)"
+            "Severe muscle breakdown (rare)"
         ],
-        "hospital_risk": "Low risk; serious liver or muscle issues may require hospitalization."
+        "hospital_risk": "Low; liver failure or rhabdomyolysis may require admission."
     },
 
     "Losartan": {
-        "use": "Used for high blood pressure and kidney protection in diabetics.",
-        "mechanism": "Angiotensin-II receptor blocker (ARB) that causes vasodilation.",
+        "use": "Used for high blood pressure and kidney protection.",
+        "mechanism": "Angiotensin-II receptor blocker causing vasodilation.",
         "side_effects": [
             "Dizziness",
-            "Increased potassium levels"
+            "Raised potassium"
         ],
-        "precautions": "Avoid in pregnancy; monitor potassium levels.",
+        "precautions": "Avoid in pregnancy; monitor potassium.",
         "dosage": "25–50 mg once daily.",
         "foods_to_avoid": [
-            "High-potassium foods (banana, coconut water)",
+            "High-potassium foods",
             "Salt substitutes"
         ],
         "foods_to_eat": [
-            "Low-sodium foods",
-            "Fruits and vegetables (except high-potassium foods)"
+            "Low-salt diet",
+            "Vegetables and fruits (except high potassium)"
         ],
         "drug_interactions": [
             "Potassium supplements",
             "NSAIDs"
         ],
         "adverse_reactions": [
-            "Kidney impairment (rare)",
-            "Severe hypotension"
+            "Kidney impairment",
+            "Severe low BP"
         ],
-        "hospital_risk": "Moderate risk in overdose or kidney dysfunction."
+        "hospital_risk": "Moderate in overdose or kidney dysfunction."
     },
 
     "Atenolol": {
-        "use": "Used for blood pressure control and heart rate regulation.",
-        "mechanism": "Beta-1 selective blocker that reduces cardiac workload.",
+        "use": "Used for blood pressure control and heart rate management.",
+        "mechanism": "Selective beta-1 blocker that reduces heart workload.",
         "side_effects": [
             "Fatigue",
-            "Cold hands/feet",
-            "Slow heart rate"
+            "Cold extremities",
+            "Slow heartbeat"
         ],
-        "precautions": "Avoid in asthma; monitor heart rate; taper dose to avoid rebound hypertension.",
+        "precautions": "Avoid in asthma; monitor heart rate.",
         "dosage": "50 mg once daily.",
         "foods_to_avoid": [
-            "Excess sodium",
+            "High-sodium foods",
             "Caffeine"
         ],
         "foods_to_eat": [
-            "Fresh fruits",
-            "Vegetables",
-            "Low-salt foods"
+            "Low-salt foods",
+            "Fruits & vegetables"
         ],
         "drug_interactions": [
-            "Other blood pressure medicines",
-            "Calcium channel blockers"
+            "Calcium channel blockers",
+            "Other beta blockers"
         ],
         "adverse_reactions": [
-            "Severe bradycardia",
+            "Extreme bradycardia",
             "Breathing difficulty (rare)"
         ],
-        "hospital_risk": "Moderate in cases of overdose or extremely low pulse."
+        "hospital_risk": "Moderate if pulse drops dangerously."
     },
 
     "ORS-K": {
         "use": "Used for sodium–potassium imbalance and dehydration.",
-        "mechanism": "Replenishes essential electrolytes and improves hydration.",
+        "mechanism": "Replenishes electrolytes and restores hydration.",
         "side_effects": [
             "Nausea",
             "Stomach discomfort"
         ],
-        "precautions": "Monitor potassium in kidney patients; avoid overconsumption.",
-        "dosage": "As needed during dehydration or electrolyte imbalance.",
+        "precautions": "Avoid excess intake in kidney patients.",
+        "dosage": "As needed during dehydration.",
         "foods_to_avoid": [
-            "Very salty foods",
-            "Sugary drinks"
+            "Sugary drinks",
+            "High-salt foods"
         ],
         "foods_to_eat": [
             "Soups",
-            "Watery fruits",
-            "Electrolyte-balanced fluids"
+            "Hydrating fruits"
         ],
         "drug_interactions": [
             "Potassium-sparing diuretics"
         ],
         "adverse_reactions": [
-            "High potassium (rare in kidney failure)"
+            "High potassium (rare)"
         ],
-        "hospital_risk": "Low except in severe dehydration or kidney disease."
+        "hospital_risk": "Low unless severe dehydration occurs."
     },
 
     "Amlodipine": {
-        "use": "Used to treat high blood pressure and angina.",
-        "mechanism": "Calcium channel blocker that relaxes blood vessels.",
+        "use": "Used to treat high BP and angina.",
+        "mechanism": "Calcium channel blocker that relaxes arteries.",
         "side_effects": [
             "Swelling in legs",
-            "Dizziness",
-            "Flushing"
+            "Dizziness"
         ],
-        "precautions": "Monitor BP; lower doses in liver disease.",
+        "precautions": "Monitor BP; adjust dose in liver disease.",
         "dosage": "5–10 mg once daily.",
         "foods_to_avoid": [
-            "Grapefruit",
-            "High-sodium foods"
+            "High-sodium foods",
+            "Grapefruit"
         ],
         "foods_to_eat": [
-            "Fruits",
-            "Vegetables",
-            "Low-sodium diet"
+            "Low-salt diets",
+            "Vegetables"
         ],
         "drug_interactions": [
             "Simvastatin",
-            "Blood pressure medications"
+            "Other BP medications"
         ],
         "adverse_reactions": [
-            "Severe edema",
+            "Severe swelling",
             "Very low BP"
         ],
-        "hospital_risk": "Low; severe swelling or hypotension may need care."
+        "hospital_risk": "Low; only severe edema/hypotension needs care."
     }
 }
+
 
 
 # ---------------------------
@@ -649,35 +642,34 @@ if page == "Drug Information":
 
     for name, d in drug_details.items():
         with st.expander(f"📌 {name}"):
-            st.markdown(f"### Use\n{d['use']}")
-            st.markdown(f"### Mechanism\n{d['mechanism']}")
-            
-            st.markdown("### Side Effects")
-            for s in d['side_effects']:
-                st.write("• " + s)
 
-            st.markdown(f"### Precautions\n{d['precautions']}")
-            st.markdown(f"### Dosage\n{d['dosage']}")
+            st.markdown(f"### 📘 Use\n{d['use']}")
+            st.markdown(f"### ⚙️ Mechanism\n{d['mechanism']}")
 
-            st.markdown("### Foods to Avoid")
-            for f in d['foods_to_avoid']:
-                st.write("• " + f)
+            st.markdown("### ⚠️ Side Effects")
+            for effect in d["side_effects"]:
+                st.write("•", effect)
 
-            st.markdown("### Foods to Eat")
-            for f in d['foods_to_eat']:
-                st.write("• " + f)
+            st.markdown(f"### 🛡 Precautions\n{d['precautions']}")
+            st.markdown(f"### 💊 Dosage\n{d['dosage']}")
 
-            st.markdown("### Drug Interactions")
-            for i in d['drug_interactions']:
-                st.write("• " + i)
+            st.markdown("### 🚫 Foods to Avoid")
+            for food in d["foods_to_avoid"]:
+                st.write("•", food)
 
-            st.markdown("### Adverse Drug Reactions")
-            for a in d['adverse_reactions']:
-                st.write("• " + a)
+            st.markdown("### ✅ Foods to Eat")
+            for food in d["foods_to_eat"]:
+                st.write("•", food)
 
-            st.markdown(f"### Hospitalization Risk\n{d['hospital_risk']}")
+            st.markdown("### 🔗 Drug Interactions")
+            for inter in d["drug_interactions"]:
+                st.write("•", inter)
 
+            st.markdown("### ❗ Adverse Drug Reactions")
+            for adr in d["adverse_reactions"]:
+                st.write("•", adr)
 
+            st.markdown(f"### 🏥 Hospitalization Risk\n{d['hospital_risk']}")
 
 
     
