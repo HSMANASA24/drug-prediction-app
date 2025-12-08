@@ -140,9 +140,9 @@ drug_details = {
 # Simple in-memory users (plain text for demo)
 # ---------------------------
 USERS = {
-    "admin": "Admin@123",
+    "poorvika": "Poorvika@123",
     "manasa": "Manasa@2005",
-    "doctor": "Doctor@123",
+    "priya": "Priya@123",
     "student": "Student@123"
 }
 
@@ -170,7 +170,7 @@ def login_page():
             if u in USERS and USERS[u] == p:
                 st.session_state["authenticated"] = True
                 st.session_state["username"] = u
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Invalid username or password")
     with col2:
@@ -194,7 +194,7 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
         st.session_state["chat_history"] = []
-        st.experimental_rerun()
+        st.rerun()
 
 # ---------------------------
 # Helper: OneHotEncoder compatibility
@@ -398,7 +398,7 @@ if page == "Chatbot":
 
                 assistant_reply = "\n".join(response_lines)
                 st.session_state["chat_history"].append(("assistant", assistant_reply))
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
