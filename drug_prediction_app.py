@@ -241,13 +241,15 @@ def build_pipeline(model_name="RandomForest"):
     pipe.fit(X, y)
     return pipe
 
-# Build RandomForest for chatbot now
-with st.spinner("Training RandomForest for chatbot..."):
+# Build RandomForest & DecisionTree for chatbot now
+with st.spinner("Training ML models for chatbot..."):
     try:
         rf_model = build_pipeline("RandomForest")
+        dt_model = build_pipeline("DecisionTree")   # ✅ THIS FIXES YOUR ERROR
     except Exception as e:
         st.error("Model training error: " + str(e))
         st.stop()
+)
 
 # ---------------------------
 # Utility: parse structured patient data from text
