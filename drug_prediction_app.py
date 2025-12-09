@@ -19,8 +19,15 @@ from sklearn.svm import SVC
 # App config
 # ---------------------------
 st.set_page_config(page_title="🛡 Smart Drug Shield", page_icon="💊", layout="centered")
-st.title("🛡 Smart Drug Shield")
-st.markdown("<p style='text-align:center; color:#0b6f6f;'><b>AI-powered drug prescription classifier — Medical theme</b></p>", unsafe_allow_html=True)
+
+st.markdown("""
+    <div style='text-align:center; margin-top:-20px;'>
+        <h1 style='font-size:40px; font-weight:900; color:#0b3d3d;'>🛡 Smart Drug Shield</h1>
+        <h4 style='color:#0b6f6f; margin-top:-10px;'>
+            <b>AI-powered drug prescription classifier — Medical Theme</b>
+        </h4>
+    </div>
+""", unsafe_allow_html=True)
 
 # ---------------------------
 # Simple CSS (medical theme)
