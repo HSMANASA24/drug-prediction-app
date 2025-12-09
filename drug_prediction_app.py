@@ -300,112 +300,137 @@ def parse_patient_text(text):
         except:
             pass
     return out
-
 # ---------------------------
-# Chatbot page (Option D)
+# Chatbot page (Interactive with Greetings)
 # ---------------------------
 if page == "Chatbot":
     st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("💬 Medical Assistant — Ask clinical questions or provide patient details")
+    st.subheader("💬 Medical Assistant — Interactive Chatbot")
 
     # Show chat history
     for role, msg in st.session_state["chat_history"]:
         if role == "user":
-            st.markdown(f"**You:** {msg}")
+            st.markdown(f"**🧑 You:** {msg}")
         else:
-            st.markdown(f"**Assistant:** {msg}")
+            st.markdown(f"**🤖 Assistant:** {msg}")
 
     # Input box
-    user_input = st.text_input("Enter your question or patient details (e.g. '45 M high BP, high cholesterol, Na 0.70 K 0.05')", key="chat_input")
+    user_input = st.text_input(
+        "Say hi 👋, ask about a drug 💊, or enter patient details (e.g. '45 M high BP Na 0.70 K 0.05')",
+        key="chat_input"
+    )
+
     col1, col2 = st.columns([1,1])
+
     with col1:
         if st.button("Send"):
             if not user_input.strip():
                 st.warning("Please type something.")
             else:
-                # add to history
                 st.session_state["chat_history"].append(("user", user_input))
-                # process message
+                q_lower = user_input.lower().strip()
                 response_lines = []
-                parsed = parse_patient_text(user_input)
 
-                # If user asked about a specific drug
-                found_drug = None
-                for dname in drug_details.keys():
-                    # search by name case-insensitive
-                    if re.search(r'\b' + re.escape(dname) + r'\b', user_input, re.IGNORECASE):
-                        found_drug = dname
-                        break
+                # ---------------------------
+                # 1️⃣ GREETING HANDLER
+                # ---------------------------
+                greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]
 
-                if found_drug:
-                    d = drug_details[found_drug]
-                    response_lines.append(f"Information for **{found_drug}**:")
-                    response_lines.append(f"- Use: {d['use']}")
-                    response_lines.append(f"- Mechanism: {d['mechanism']}")
-                    response_lines.append(f"- Side effects: {', '.join(d['side_effects'])}")
-                    response_lines.append(f"- Precautions: {d['precautions']}")
-                    response_lines.append(f"- Dosage: {d['dosage']}")
-                elif parsed and ('Age' in parsed or 'Sex' in parsed or 'BP' in parsed or 'Cholesterol' in parsed or 'Na' in parsed or 'K' in parsed):
-                    # If structured patient data detected -> predict using RandomForest
-                    # Fill missing fields with simple defaults from median/mode
-                    median_age = int(df_full['Age'].median())
-                    default_sex = df_full['Sex'].mode()[0]
-                    default_bp = df_full['BP'].mode()[0]
-                    default_chol = df_full['Cholesterol'].mode()[0]
-                    default_na = float(df_full['Na'].median())
-                    default_k = float(df_full['K'].median())
+                if any(greet in q_lower for greet in greetings):
+                    response_lines.append("Hello! 👋 I'm your Smart Medical Assistant.")
+                    response_lines.append("You can:")
+                    response_lines.append("✔ Predict medicines from patient details")
+                    response_lines.append("✔ Ask about any drug (uses, side effects, dosage)")
+                    response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
 
-                    a = parsed.get('Age', median_age)
-                    s = parsed.get('Sex', default_sex)
-                    bpv = parsed.get('BP', default_bp)
-                    chol = parsed.get('Cholesterol', default_chol)
-                    na = parsed.get('Na', default_na)
-                    k = parsed.get('K', default_k)
-
-                    input_df = pd.DataFrame([[a, s, bpv, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
-                    try:
-                        probs = rf_model.predict_proba(input_df)[0]
-                        sorted_idx = np.argsort(probs)[::-1]
-                        top_idx = int(sorted_idx[0])
-                        top_label = rf_model.classes_[top_idx]
-                        top_conf = float(probs[top_idx])*100.0
-                        # Build response
-                        response_lines.append(f"Predicted Drug: **{top_label}** ({top_conf:.2f}% confidence) — RandomForest")
-                        # top 3 list
-                        response_lines.append("Top predictions:")
-                        for i in range(min(3, len(sorted_idx))):
-                            idx = int(sorted_idx[i])
-                            response_lines.append(f"{i+1}. {rf_model.classes_[idx]} — {probs[idx]*100.0:.2f}%")
-                        # brief explanation (feature echo)
-                        response_lines.append("Explanation (features used):")
-                        response_lines.append(f"- Age: {a}, Sex: {s}, BP: {bpv}, Cholesterol: {chol}, Na: {na}, K: {k}")
-                        # Append drug details if available
-                        if top_label in drug_details:
-                            dd = drug_details[top_label]
-                            response_lines.append(f"About **{top_label}**: {dd['use']} — Dosage: {dd['dosage']}")
-                    except Exception as e:
-                        response_lines.append("Prediction failed: " + str(e))
+                # ---------------------------
+                # 2️⃣ DRUG INFO HANDLER
+                # ---------------------------
                 else:
-                    # General Q&A fallback: simple rule-based answers
-                    q = user_input.lower()
-                    if "what is" in q or "define" in q or "explain" in q:
-                        # try find drug name in question
-                        matched = None
-                        for name in drug_details.keys():
-                            if name.lower() in q:
-                                matched = name
-                                break
-                        if matched:
-                            d = drug_details[matched]
-                            response_lines.append(f"{matched}: {d['use']}. Mechanism: {d['mechanism']}.")
-                        else:
-                            response_lines.append("I can answer drug-related questions and make drug predictions based on patient features. Try asking about a drug name or provide patient data like '45 M high BP Na 0.70 K 0.05'.")
+                    found_drug = None
+                    for dname in drug_details.keys():
+                        if re.search(r'\b' + re.escape(dname) + r'\b', user_input, re.IGNORECASE):
+                            found_drug = dname
+                            break
+
+                    if found_drug:
+                        d = drug_details[found_drug]
+                        response_lines.append(f"💊 **{found_drug} Information:**")
+                        response_lines.append(f"• Use: {d['use']}")
+                        response_lines.append(f"• Mechanism: {d['mechanism']}")
+                        response_lines.append(f"• Side effects: {', '.join(d['side_effects'])}")
+                        response_lines.append(f"• Dosage: {d['dosage']}")
+
+                    # ---------------------------
+                    # 3️⃣ PATIENT DATA → PREDICTION
+                    # ---------------------------
                     else:
-                        response_lines.append("I can: (1) predict drug from patient features, (2) give drug info. Try giving patient data or asking about a drug.")
+                        parsed = parse_patient_text(user_input)
+
+                        if parsed:
+                            median_age = int(df_full['Age'].median())
+                            default_sex = df_full['Sex'].mode()[0]
+                            default_bp = df_full['BP'].mode()[0]
+                            default_chol = df_full['Cholesterol'].mode()[0]
+                            default_na = float(df_full['Na'].median())
+                            default_k = float(df_full['K'].median())
+
+                            a = parsed.get('Age', median_age)
+                            s = parsed.get('Sex', default_sex)
+                            bpv = parsed.get('BP', default_bp)
+                            chol = parsed.get('Cholesterol', default_chol)
+                            na = parsed.get('Na', default_na)
+                            k = parsed.get('K', default_k)
+
+                            input_df = pd.DataFrame(
+                                [[a, s, bpv, chol, na, k]],
+                                columns=['Age','Sex','BP','Cholesterol','Na','K']
+                            )
+
+                            try:
+                                probs = rf_model.predict_proba(input_df)[0]
+                                sorted_idx = np.argsort(probs)[::-1]
+                                top_idx = int(sorted_idx[0])
+                                top_label = rf_model.classes_[top_idx]
+                                top_conf = float(probs[top_idx])*100.0
+
+                                response_lines.append(f"✅ **Predicted Drug:** {top_label}")
+                                response_lines.append(f"🎯 Confidence: {top_conf:.2f}%")
+                                response_lines.append("🔝 Top 3 Predictions:")
+
+                                for i in range(min(3, len(sorted_idx))):
+                                    idx = int(sorted_idx[i])
+                                    response_lines.append(
+                                        f"{i+1}. {rf_model.classes_[idx]} — {probs[idx]*100.0:.2f}%"
+                                    )
+
+                                if top_label in drug_details:
+                                    dd = drug_details[top_label]
+                                    response_lines.append(f"💡 About {top_label}: {dd['use']}")
+                                    response_lines.append(f"💊 Dosage: {dd['dosage']}")
+
+                            except Exception as e:
+                                response_lines.append("❌ Prediction failed: " + str(e))
+
+                        # ---------------------------
+                        # 4️⃣ FALLBACK INTERACTIVE HELP
+                        # ---------------------------
+                        else:
+                            response_lines.append("🤖 I'm here to help!")
+                            response_lines.append("You can:")
+                            response_lines.append("✔ Say **Hi / Hello**")
+                            response_lines.append("✔ Ask about a drug (example: *Amlodipine*)")
+                            response_lines.append("✔ Enter patient data for prediction")
+                            response_lines.append("📌 Example: `50 F HIGH BP HIGH cholesterol Na 0.75 K 0.04`")
 
                 assistant_reply = "\n".join(response_lines)
                 st.session_state["chat_history"].append(("assistant", assistant_reply))
                 st.rerun()
+
+    with col2:
+        if st.button("Clear Chat"):
+            st.session_state["chat_history"] = []
+            st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
