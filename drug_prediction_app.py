@@ -301,11 +301,11 @@ def parse_patient_text(text):
             pass
     return out
 # ---------------------------
-# Chatbot page (Interactive with Greetings)
+# Chatbot page (FINAL INTERACTIVE VERSION WITH HIGH + LOW BP)
 # ---------------------------
 if page == "Chatbot":
     st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("💬 Medical Assistant — Interactive Chatbot")
+    st.subheader("💬 Smart Medical Assistant")
 
     # Show chat history
     for role, msg in st.session_state["chat_history"]:
@@ -331,12 +331,15 @@ if page == "Chatbot":
                 q_lower = user_input.lower().strip()
                 response_lines = []
 
+                # Clean sentence (prevents 'hi' inside 'high' bug)
+                clean_msg = re.sub(r'[^a-zA-Z ]', '', q_lower).strip()
+
                 # ---------------------------
-                # 1️⃣ GREETING HANDLER
+                # 1️⃣ GREETINGS
                 # ---------------------------
                 greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]
 
-                if any(greet in q_lower for greet in greetings):
+                if clean_msg in greetings:
                     response_lines.append("Hello! 👋 I'm your Smart Medical Assistant.")
                     response_lines.append("You can:")
                     response_lines.append("✔ Predict medicines from patient details")
@@ -344,7 +347,40 @@ if page == "Chatbot":
                     response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
 
                 # ---------------------------
-                # 2️⃣ DRUG INFO HANDLER
+                # 1️⃣.5 THANK YOU & BYE
+                # ---------------------------
+                elif clean_msg in ["thanks", "thank you", "thx", "ty"]:
+                    response_lines.append("You're most welcome! 😊")
+                    response_lines.append("If you need any more medical help, I'm always here for you 💊❤️")
+
+                elif clean_msg in ["bye", "goodbye", "see you", "exit", "see ya"]:
+                    response_lines.append("Goodbye! 👋 Take care of your health!")
+                    response_lines.append("🛡 Smart Drug Shield is always here when you need me.")
+
+                # ---------------------------
+                # 2️⃣ HIGH BP HANDLER
+                # ---------------------------
+                elif "high bp" in q_lower or "hypertension" in q_lower:
+                    response_lines.append("✅ I understand you have **High Blood Pressure (Hypertension)**.")
+                    response_lines.append("📌 Please provide:")
+                    response_lines.append("- Age")
+                    response_lines.append("- Sodium (Na)")
+                    response_lines.append("- Potassium (K)")
+                    response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
+
+                # ---------------------------
+                # 2️⃣.5 LOW BP HANDLER ✅ NEW
+                # ---------------------------
+                elif "low bp" in q_lower or "hypotension" in q_lower:
+                    response_lines.append("✅ I understand you have **Low Blood Pressure (Hypotension)**.")
+                    response_lines.append("📌 Please provide:")
+                    response_lines.append("- Age")
+                    response_lines.append("- Sodium (Na)")
+                    response_lines.append("- Potassium (K)")
+                    response_lines.append("💡 Example: `30 F LOW BP Na 0.65 K 0.04`")
+
+                # ---------------------------
+                # 3️⃣ DRUG INFO HANDLER
                 # ---------------------------
                 else:
                     found_drug = None
@@ -362,7 +398,7 @@ if page == "Chatbot":
                         response_lines.append(f"• Dosage: {d['dosage']}")
 
                     # ---------------------------
-                    # 3️⃣ PATIENT DATA → PREDICTION
+                    # 4️⃣ PATIENT DATA → ML PREDICTION
                     # ---------------------------
                     else:
                         parsed = parse_patient_text(user_input)
@@ -413,7 +449,7 @@ if page == "Chatbot":
                                 response_lines.append("❌ Prediction failed: " + str(e))
 
                         # ---------------------------
-                        # 4️⃣ FALLBACK INTERACTIVE HELP
+                        # 5️⃣ FINAL FALLBACK
                         # ---------------------------
                         else:
                             response_lines.append("🤖 I'm here to help!")
@@ -433,6 +469,7 @@ if page == "Chatbot":
             st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ---------------------------
 # Predictor page (multi-model)
