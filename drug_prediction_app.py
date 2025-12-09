@@ -301,11 +301,11 @@ def parse_patient_text(text):
             pass
     return out
 # ---------------------------
-# Chatbot page (FINAL INTERACTIVE VERSION WITH HIGH + LOW BP)
+# Chatbot page (FINAL VERSION WITH RF + DT PREDICTIONS)
 # ---------------------------
 if page == "Chatbot":
     st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("💬 Smart Medical Assistant")
+    st.subheader("💬 Smart Medical Assistant (RandomForest + DecisionTree)")
 
     # Show chat history
     for role, msg in st.session_state["chat_history"]:
@@ -314,7 +314,6 @@ if page == "Chatbot":
         else:
             st.markdown(f"**🤖 Assistant:** {msg}")
 
-    # Input box
     user_input = st.text_input(
         "Say hi 👋, ask about a drug 💊, or enter patient details (e.g. '45 M high BP Na 0.70 K 0.05')",
         key="chat_input"
@@ -331,7 +330,7 @@ if page == "Chatbot":
                 q_lower = user_input.lower().strip()
                 response_lines = []
 
-                # Clean sentence (prevents 'hi' inside 'high' bug)
+                # Clean text (fixes hi inside high issue)
                 clean_msg = re.sub(r'[^a-zA-Z ]', '', q_lower).strip()
 
                 # ---------------------------
@@ -341,9 +340,8 @@ if page == "Chatbot":
 
                 if clean_msg in greetings:
                     response_lines.append("Hello! 👋 I'm your Smart Medical Assistant.")
-                    response_lines.append("You can:")
-                    response_lines.append("✔ Predict medicines from patient details")
-                    response_lines.append("✔ Ask about any drug (uses, side effects, dosage)")
+                    response_lines.append("✔ I predict drugs using **RandomForest & DecisionTree models**")
+                    response_lines.append("✔ I also provide full drug information")
                     response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
 
                 # ---------------------------
@@ -351,7 +349,7 @@ if page == "Chatbot":
                 # ---------------------------
                 elif clean_msg in ["thanks", "thank you", "thx", "ty"]:
                     response_lines.append("You're most welcome! 😊")
-                    response_lines.append("If you need any more medical help, I'm always here for you 💊❤️")
+                    response_lines.append("If you need any more medical help, I'm always here 💊❤️")
 
                 elif clean_msg in ["bye", "goodbye", "see you", "exit", "see ya"]:
                     response_lines.append("Goodbye! 👋 Take care of your health!")
@@ -361,7 +359,7 @@ if page == "Chatbot":
                 # 2️⃣ HIGH BP HANDLER
                 # ---------------------------
                 elif "high bp" in q_lower or "hypertension" in q_lower:
-                    response_lines.append("✅ I understand you have **High Blood Pressure (Hypertension)**.")
+                    response_lines.append("✅ I understand you have **High Blood Pressure**.")
                     response_lines.append("📌 Please provide:")
                     response_lines.append("- Age")
                     response_lines.append("- Sodium (Na)")
@@ -369,10 +367,10 @@ if page == "Chatbot":
                     response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
 
                 # ---------------------------
-                # 2️⃣.5 LOW BP HANDLER ✅ NEW
+                # 2️⃣.5 LOW BP HANDLER
                 # ---------------------------
                 elif "low bp" in q_lower or "hypotension" in q_lower:
-                    response_lines.append("✅ I understand you have **Low Blood Pressure (Hypotension)**.")
+                    response_lines.append("✅ I understand you have **Low Blood Pressure**.")
                     response_lines.append("📌 Please provide:")
                     response_lines.append("- Age")
                     response_lines.append("- Sodium (Na)")
@@ -398,7 +396,7 @@ if page == "Chatbot":
                         response_lines.append(f"• Dosage: {d['dosage']}")
 
                     # ---------------------------
-                    # 4️⃣ PATIENT DATA → ML PREDICTION
+                    # 4️⃣ PATIENT DATA → RF + DT PREDICTION ✅
                     # ---------------------------
                     else:
                         parsed = parse_patient_text(user_input)
@@ -424,25 +422,25 @@ if page == "Chatbot":
                             )
 
                             try:
-                                probs = rf_model.predict_proba(input_df)[0]
-                                sorted_idx = np.argsort(probs)[::-1]
-                                top_idx = int(sorted_idx[0])
-                                top_label = rf_model.classes_[top_idx]
-                                top_conf = float(probs[top_idx])*100.0
+                                # ✅ RANDOM FOREST
+                                rf_probs = rf_model.predict_proba(input_df)[0]
+                                rf_idx = int(np.argmax(rf_probs))
+                                rf_label = rf_model.classes_[rf_idx]
+                                rf_conf = rf_probs[rf_idx] * 100
 
-                                response_lines.append(f"✅ **Predicted Drug:** {top_label}")
-                                response_lines.append(f"🎯 Confidence: {top_conf:.2f}%")
-                                response_lines.append("🔝 Top 3 Predictions:")
+                                # ✅ DECISION TREE
+                                dt_probs = dt_model.predict_proba(input_df)[0]
+                                dt_idx = int(np.argmax(dt_probs))
+                                dt_label = dt_model.classes_[dt_idx]
+                                dt_conf = dt_probs[dt_idx] * 100
 
-                                for i in range(min(3, len(sorted_idx))):
-                                    idx = int(sorted_idx[i])
-                                    response_lines.append(
-                                        f"{i+1}. {rf_model.classes_[idx]} — {probs[idx]*100.0:.2f}%"
-                                    )
+                                response_lines.append("🤖 **Model Predictions:**")
+                                response_lines.append(f"🌳 Random Forest → **{rf_label} ({rf_conf:.2f}%)**")
+                                response_lines.append(f"🌲 Decision Tree → **{dt_label} ({dt_conf:.2f}%)**")
 
-                                if top_label in drug_details:
-                                    dd = drug_details[top_label]
-                                    response_lines.append(f"💡 About {top_label}: {dd['use']}")
+                                if rf_label in drug_details:
+                                    dd = drug_details[rf_label]
+                                    response_lines.append(f"💡 About {rf_label}: {dd['use']}")
                                     response_lines.append(f"💊 Dosage: {dd['dosage']}")
 
                             except Exception as e:
@@ -453,11 +451,10 @@ if page == "Chatbot":
                         # ---------------------------
                         else:
                             response_lines.append("🤖 I'm here to help!")
-                            response_lines.append("You can:")
                             response_lines.append("✔ Say **Hi / Hello**")
                             response_lines.append("✔ Ask about a drug (example: *Amlodipine*)")
                             response_lines.append("✔ Enter patient data for prediction")
-                            response_lines.append("📌 Example: `50 F HIGH BP HIGH cholesterol Na 0.75 K 0.04`")
+                            response_lines.append("📌 Example: `50 F HIGH BP Na 0.75 K 0.04`")
 
                 assistant_reply = "\n".join(response_lines)
                 st.session_state["chat_history"].append(("assistant", assistant_reply))
