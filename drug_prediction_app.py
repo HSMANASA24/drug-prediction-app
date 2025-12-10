@@ -1,4 +1,4 @@
-# app.py - Smart Drug Shield (Complete, CSV-only fallback to GitHub RAW)
+# app.py - Smart Drug Shield (Updated as per requirements)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -163,6 +163,12 @@ if "username" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []  # list of (role, text)
 
+# Interactive chatbot patient state
+if "patient_step" not in st.session_state:
+    st.session_state["patient_step"] = None  # 'age','sex','bp','chol'
+if "patient_form" not in st.session_state:
+    st.session_state["patient_form"] = {}    # stores Age, Sex, BP, Cholesterol, Na, K
+
 # ---------------------------
 # Login page
 # ---------------------------
@@ -201,6 +207,8 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.session_state["username"] = None
         st.session_state["chat_history"] = []
+        st.session_state["patient_step"] = None
+        st.session_state["patient_form"] = {}
         st.rerun()
 
 # ---------------------------
@@ -230,8 +238,8 @@ def build_pipeline(model_name="RandomForest"):
         "RandomForest": RandomForestClassifier(n_estimators=200, random_state=42),
         "LogisticRegression": LogisticRegression(max_iter=2000),
         "KNN": KNeighborsClassifier(),
-        "DecisionTree": DecisionTreeClassifier(),
-        "SVM": SVC(probability=True)
+        "DecisionTree": DecisionTreeClassifier(random_state=42),
+        "SVM": SVC(probability=True, random_state=42)
     }
 
     if model_name not in models:
@@ -241,10 +249,9 @@ def build_pipeline(model_name="RandomForest"):
     pipe.fit(X, y)
     return pipe
 
-# Build RandomForest & DecisionTree for chatbot now
-with st.spinner("Training ML models for chatbot..."):
+# Build DecisionTree for chatbot and as primary model
+with st.spinner("Training DecisionTree model for predictions..."):
     try:
-        rf_model = build_pipeline("RandomForest")
         dt_model = build_pipeline("DecisionTree")
     except Exception as e:
         st.error("Model training error: " + str(e))
@@ -302,12 +309,13 @@ def parse_patient_text(text):
         except:
             pass
     return out
+
 # ---------------------------
-# Chatbot page (FINAL VERSION WITH RF + DT PREDICTIONS)
+# Chatbot page (DecisionTree only, interactive)
 # ---------------------------
 if page == "Chatbot":
     st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("💬 Smart Medical Assistant (RandomForest + DecisionTree)")
+    st.subheader("💬 Smart Medical Assistant (DecisionTree)")
 
     # Show chat history
     for role, msg in st.session_state["chat_history"]:
@@ -317,146 +325,244 @@ if page == "Chatbot":
             st.markdown(f"**🤖 Assistant:** {msg}")
 
     user_input = st.text_input(
-        "Say hi 👋, ask about a drug 💊, or enter patient details (e.g. '45 M high BP Na 0.70 K 0.05')",
+        "Say hi 👋 to start an interactive assessment, ask about a drug 💊, or type 'reset' to start again.",
         key="chat_input"
     )
 
     col1, col2 = st.columns([1,1])
+
+    def run_decisiontree_prediction(features_dict):
+        """Run DecisionTree prediction using collected features."""
+        median_age = int(df_full['Age'].median())
+        default_sex = df_full['Sex'].mode()[0]
+        default_bp = df_full['BP'].mode()[0]
+        default_chol = df_full['Cholesterol'].mode()[0]
+        default_na = float(df_full['Na'].median())
+        default_k = float(df_full['K'].median())
+
+        a = int(features_dict.get('Age', median_age))
+        s = features_dict.get('Sex', default_sex)
+        bpv = features_dict.get('BP', default_bp)
+        chol = features_dict.get('Cholesterol', default_chol)
+        na = float(features_dict.get('Na', default_na))
+        k = float(features_dict.get('K', default_k))
+
+        input_df = pd.DataFrame(
+            [[a, s, bpv, chol, na, k]],
+            columns=['Age','Sex','BP','Cholesterol','Na','K']
+        )
+
+        dt_probs = dt_model.predict_proba(input_df)[0]
+        dt_idx = int(np.argmax(dt_probs))
+        dt_label = dt_model.classes_[dt_idx]
+        dt_conf = dt_probs[dt_idx] * 100.0
+
+        return {
+            "Age": a, "Sex": s, "BP": bpv, "Cholesterol": chol, "Na": na, "K": k,
+            "label": dt_label, "confidence": dt_conf
+        }
 
     with col1:
         if st.button("Send"):
             if not user_input.strip():
                 st.warning("Please type something.")
             else:
+                # Store user message
                 st.session_state["chat_history"].append(("user", user_input))
                 q_lower = user_input.lower().strip()
+                clean_msg = re.sub(r'[^a-zA-Z ]', '', q_lower).strip()
                 response_lines = []
 
-                # Clean text (fixes hi inside high issue)
-                clean_msg = re.sub(r'[^a-zA-Z ]', '', q_lower).strip()
+                # Handle reset of interactive flow
+                if clean_msg in ["reset", "restart", "new patient"]:
+                    st.session_state["patient_step"] = None
+                    st.session_state["patient_form"] = {}
+                    response_lines.append("✅ Patient assessment has been reset.")
+                    response_lines.append("Say **Hi** to start a new interactive assessment.")
+                    assistant_reply = "\n".join(response_lines)
+                    st.session_state["chat_history"].append(("assistant", assistant_reply))
+                    st.rerun()
 
-                # ---------------------------
-                # 1️⃣ GREETINGS
-                # ---------------------------
-                greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]
+                # If we are in the middle of interactive patient Q&A
+                patient_step = st.session_state.get("patient_step")
 
-                if clean_msg in greetings:
-                    response_lines.append("Hello! 👋 I'm your Smart Medical Assistant.")
-                    response_lines.append("✔ I predict drugs using **RandomForest & DecisionTree models**")
-                    response_lines.append("✔ I also provide full drug information")
-                    response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
+                if patient_step is not None:
+                    form = st.session_state["patient_form"]
 
-                # ---------------------------
-                # 1️⃣.5 THANK YOU & BYE
-                # ---------------------------
-                elif clean_msg in ["thanks", "thank you", "thx", "ty"]:
-                    response_lines.append("You're most welcome! 😊")
-                    response_lines.append("If you need any more medical help, I'm always here 💊❤️")
+                    # Step: Age
+                    if patient_step == "age":
+                        m = re.search(r'([0-9]{1,3})', user_input)
+                        if m:
+                            age_val = int(m.group(1))
+                            form["Age"] = age_val
+                            st.session_state["patient_step"] = "sex"
+                            response_lines.append(f"Got it, Age: **{age_val}** years.")
+                            response_lines.append("Next, what is the **sex** of the patient? (Reply with **M** or **F**)")
+                        else:
+                            response_lines.append("Please enter a valid age in years (example: 45).")
 
-                elif clean_msg in ["bye", "goodbye", "see you", "exit", "see ya"]:
-                    response_lines.append("Goodbye! 👋 Take care of your health!")
-                    response_lines.append("🛡 Smart Drug Shield is always here when you need me.")
+                    # Step: Sex
+                    elif patient_step == "sex":
+                        if re.search(r'\bf\b', q_lower) or q_lower.strip() == "f":
+                            form["Sex"] = "F"
+                            st.session_state["patient_step"] = "bp"
+                            response_lines.append("Sex: **Female (F)**.")
+                            response_lines.append("Do you have **low BP**, **high BP**, or **normal BP**?")
+                            response_lines.append("Reply with: **LOW / HIGH / NORMAL**.")
+                        elif re.search(r'\bm\b', q_lower) or q_lower.strip() == "m":
+                            form["Sex"] = "M"
+                            st.session_state["patient_step"] = "bp"
+                            response_lines.append("Sex: **Male (M)**.")
+                            response_lines.append("Do you have **low BP**, **high BP**, or **normal BP**?")
+                            response_lines.append("Reply with: **LOW / HIGH / NORMAL**.")
+                        else:
+                            response_lines.append("Please reply with **M** for male or **F** for female.")
 
-                # ---------------------------
-                # 2️⃣ HIGH BP HANDLER
-                # ---------------------------
-                elif "high bp" in q_lower or "hypertension" in q_lower:
-                    response_lines.append("✅ I understand you have **High Blood Pressure**.")
-                    response_lines.append("📌 Please provide:")
-                    response_lines.append("- Age")
-                    response_lines.append("- Sodium (Na)")
-                    response_lines.append("- Potassium (K)")
-                    response_lines.append("💡 Example: `45 M HIGH BP Na 0.70 K 0.05`")
+                    # Step: BP
+                    elif patient_step == "bp":
+                        bp_val = None
+                        if "high" in q_lower:
+                            bp_val = "HIGH"
+                        elif "low" in q_lower:
+                            bp_val = "LOW"
+                        elif "normal" in q_lower:
+                            bp_val = "NORMAL"
 
-                # ---------------------------
-                # 2️⃣.5 LOW BP HANDLER
-                # ---------------------------
-                elif "low bp" in q_lower or "hypotension" in q_lower:
-                    response_lines.append("✅ I understand you have **Low Blood Pressure**.")
-                    response_lines.append("📌 Please provide:")
-                    response_lines.append("- Age")
-                    response_lines.append("- Sodium (Na)")
-                    response_lines.append("- Potassium (K)")
-                    response_lines.append("💡 Example: `30 F LOW BP Na 0.65 K 0.04`")
+                        if bp_val is not None:
+                            form["BP"] = bp_val
+                            st.session_state["patient_step"] = "chol"
+                            response_lines.append(f"Blood Pressure: **{bp_val}**.")
+                            response_lines.append("Do you have **high cholesterol** or **no cholesterol problem**?")
+                            response_lines.append("Reply with **HIGH** or **NORMAL**.")
+                        else:
+                            response_lines.append("Please reply with **HIGH**, **LOW**, or **NORMAL** for BP.")
 
-                # ---------------------------
-                # 3️⃣ DRUG INFO HANDLER
-                # ---------------------------
-                else:
-                    found_drug = None
-                    for dname in drug_details.keys():
-                        if re.search(r'\b' + re.escape(dname) + r'\b', user_input, re.IGNORECASE):
-                            found_drug = dname
-                            break
+                    # Step: Cholesterol
+                    elif patient_step == "chol":
+                        chol_val = None
+                        # Interpret "no / not / normal" as NORMAL
+                        if "high" in q_lower:
+                            chol_val = "HIGH"
+                        elif "no" in q_lower or "not" in q_lower or "normal" in q_lower:
+                            chol_val = "NORMAL"
 
-                    if found_drug:
-                        d = drug_details[found_drug]
-                        response_lines.append(f"💊 **{found_drug} Information:**")
-                        response_lines.append(f"• Use: {d['use']}")
-                        response_lines.append(f"• Mechanism: {d['mechanism']}")
-                        response_lines.append(f"• Side effects: {', '.join(d['side_effects'])}")
-                        response_lines.append(f"• Dosage: {d['dosage']}")
+                        if chol_val is not None:
+                            form["Cholesterol"] = chol_val
 
-                    # ---------------------------
-                    # 4️⃣ PATIENT DATA → RF + DT PREDICTION ✅
-                    # ---------------------------
-                    else:
-                        parsed = parse_patient_text(user_input)
+                            # Try to parse Na/K if user gave in the same sentence, else use default later
+                            parsed_ions = parse_patient_text(user_input)
+                            if "Na" in parsed_ions:
+                                form["Na"] = parsed_ions["Na"]
+                            if "K" in parsed_ions:
+                                form["K"] = parsed_ions["K"]
 
-                        if parsed:
-                            median_age = int(df_full['Age'].median())
-                            default_sex = df_full['Sex'].mode()[0]
-                            default_bp = df_full['BP'].mode()[0]
-                            default_chol = df_full['Cholesterol'].mode()[0]
-                            default_na = float(df_full['Na'].median())
-                            default_k = float(df_full['K'].median())
-
-                            a = parsed.get('Age', median_age)
-                            s = parsed.get('Sex', default_sex)
-                            bpv = parsed.get('BP', default_bp)
-                            chol = parsed.get('Cholesterol', default_chol)
-                            na = parsed.get('Na', default_na)
-                            k = parsed.get('K', default_k)
-
-                            input_df = pd.DataFrame(
-                                [[a, s, bpv, chol, na, k]],
-                                columns=['Age','Sex','BP','Cholesterol','Na','K']
-                            )
-
+                            # Ready to predict via DecisionTree
                             try:
-                                # ✅ RANDOM FOREST
-                                rf_probs = rf_model.predict_proba(input_df)[0]
-                                rf_idx = int(np.argmax(rf_probs))
-                                rf_label = rf_model.classes_[rf_idx]
-                                rf_conf = rf_probs[rf_idx] * 100
+                                result = run_decisiontree_prediction(form)
+                                st.session_state["patient_step"] = None
+                                st.session_state["patient_form"] = {}
 
-                                # ✅ DECISION TREE
-                                dt_probs = dt_model.predict_proba(input_df)[0]
-                                dt_idx = int(np.argmax(dt_probs))
-                                dt_label = dt_model.classes_[dt_idx]
-                                dt_conf = dt_probs[dt_idx] * 100
+                                response_lines.append("✅ Thank you. I have the details I need.")
+                                response_lines.append(
+                                    f"Age **{result['Age']}**, Sex **{result['Sex']}**, "
+                                    f"BP **{result['BP']}**, Cholesterol **{result['Cholesterol']}**."
+                                )
+                                # Inform about Na/K assumption if not provided
+                                response_lines.append(
+                                    "Sodium (Na) and Potassium (K) are taken from patient input if given; "
+                                    "otherwise, average values from the dataset are used."
+                                )
+                                response_lines.append("")
+                                response_lines.append("🤖 **DecisionTree Model Prediction:**")
+                                response_lines.append(
+                                    f"💊 Recommended drug: **{result['label']} ({result['confidence']:.2f}% confidence)**"
+                                )
 
-                                response_lines.append("🤖 **Model Predictions:**")
-                                response_lines.append(f"🌳 Random Forest → **{rf_label} ({rf_conf:.2f}%)**")
-                                response_lines.append(f"🌲 Decision Tree → **{dt_label} ({dt_conf:.2f}%)**")
-
-                                if rf_label in drug_details:
-                                    dd = drug_details[rf_label]
-                                    response_lines.append(f"💡 About {rf_label}: {dd['use']}")
-                                    response_lines.append(f"💊 Dosage: {dd['dosage']}")
-
+                                if result["label"] in drug_details:
+                                    dd = drug_details[result["label"]]
+                                    response_lines.append(f"ℹ️ {result['label']} is typically used for: {dd['use']}")
+                                    response_lines.append(f"📏 Usual dosage: {dd['dosage']}")
                             except Exception as e:
                                 response_lines.append("❌ Prediction failed: " + str(e))
-
-                        # ---------------------------
-                        # 5️⃣ FINAL FALLBACK
-                        # ---------------------------
+                                st.session_state["patient_step"] = None
+                                st.session_state["patient_form"] = {}
                         else:
-                            response_lines.append("🤖 I'm here to help!")
-                            response_lines.append("✔ Say **Hi / Hello**")
-                            response_lines.append("✔ Ask about a drug (example: *Amlodipine*)")
-                            response_lines.append("✔ Enter patient data for prediction")
-                            response_lines.append("📌 Example: `50 F HIGH BP Na 0.75 K 0.04`")
+                            response_lines.append(
+                                "Please reply with **HIGH** if you have high cholesterol, "
+                                "or **NORMAL** if you do not have a cholesterol problem."
+                            )
+
+                else:
+                    # ---------------------------
+                    # No active interactive flow: handle normal chatbot logic
+                    # ---------------------------
+                    greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]
+
+                    if clean_msg in greetings:
+                        # Start interactive Q&A
+                        st.session_state["patient_step"] = "age"
+                        st.session_state["patient_form"] = {}
+                        response_lines.append("Hello! 👋 I'm your Smart Medical Assistant.")
+                        response_lines.append("I will ask you a few questions and then predict a suitable drug using a **DecisionTree model**.")
+                        response_lines.append("")
+                        response_lines.append("First, what is the **age** of the patient? (example: 45)")
+                    elif clean_msg in ["thanks", "thank you", "thx", "ty"]:
+                        response_lines.append("You're most welcome! 😊")
+                        response_lines.append("If you need any more medical help, I'm always here 💊❤️")
+                    elif clean_msg in ["bye", "goodbye", "see you", "exit", "see ya"]:
+                        response_lines.append("Goodbye! 👋 Take care of your health!")
+                        response_lines.append("🛡 Smart Drug Shield is always here when you need me.")
+                    elif "high bp" in q_lower or "hypertension" in q_lower:
+                        response_lines.append("✅ I understand you are concerned about **High Blood Pressure**.")
+                        response_lines.append("Let's do an interactive assessment.")
+                        st.session_state["patient_step"] = "age"
+                        st.session_state["patient_form"] = {}
+                        response_lines.append("What is the **age** of the patient?")
+                    elif "low bp" in q_lower or "hypotension" in q_lower:
+                        response_lines.append("✅ I understand you are concerned about **Low Blood Pressure**.")
+                        response_lines.append("Let's do an interactive assessment.")
+                        st.session_state["patient_step"] = "age"
+                        st.session_state["patient_form"] = {}
+                        response_lines.append("What is the **age** of the patient?")
+                    else:
+                        # Drug information handler
+                        found_drug = None
+                        for dname in drug_details.keys():
+                            if re.search(r'\b' + re.escape(dname) + r'\b', user_input, re.IGNORECASE):
+                                found_drug = dname
+                                break
+
+                        if found_drug:
+                            d = drug_details[found_drug]
+                            response_lines.append(f"💊 **{found_drug} Information:**")
+                            response_lines.append(f"• Use: {d['use']}")
+                            response_lines.append(f"• Mechanism: {d['mechanism']}")
+                            response_lines.append(f"• Side effects: {', '.join(d['side_effects'])}")
+                            response_lines.append(f"• Dosage: {d['dosage']}")
+                        else:
+                            # Try parsing free text patient details directly for DecisionTree prediction
+                            parsed = parse_patient_text(user_input)
+
+                            if parsed:
+                                try:
+                                    result = run_decisiontree_prediction(parsed)
+                                    response_lines.append("🤖 **DecisionTree Model Prediction (from your text):**")
+                                    response_lines.append(
+                                        f"💊 Recommended drug: **{result['label']} ({result['confidence']:.2f}% confidence)**"
+                                    )
+                                    if result["label"] in drug_details:
+                                        dd = drug_details[result["label"]]
+                                        response_lines.append(f"ℹ️ {result['label']} is typically used for: {dd['use']}")
+                                        response_lines.append(f"📏 Usual dosage: {dd['dosage']}")
+                                except Exception as e:
+                                    response_lines.append("❌ Prediction failed: " + str(e))
+                            else:
+                                # Final generic help message
+                                response_lines.append("🤖 I'm here to help!")
+                                response_lines.append("You can:")
+                                response_lines.append("• Say **Hi / Hello** to start interactive prediction")
+                                response_lines.append("• Ask about a drug (example: *Amlodipine*)")
+                                response_lines.append("• Or type patient info like: `45 M HIGH BP Na 0.70 K 0.05`")
 
                 assistant_reply = "\n".join(response_lines)
                 st.session_state["chat_history"].append(("assistant", assistant_reply))
@@ -465,25 +571,28 @@ if page == "Chatbot":
     with col2:
         if st.button("Clear Chat"):
             st.session_state["chat_history"] = []
+            st.session_state["patient_step"] = None
+            st.session_state["patient_form"] = {}
             st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ---------------------------
-# Predictor page (multi-model)
+# Predictor page (multi-model, top-3 models)
 # ---------------------------
 if page == "Predictor":
     st.markdown('<div class="glass">', unsafe_allow_html=True)
     st.subheader("🧪 Predictor — single patient input")
 
-    # Model choice (multiple models)
-    model_choice = st.selectbox("Choose model", ["RandomForest", "LogisticRegression", "KNN", "DecisionTree", "SVM"])
+    # Build all models (cached by name)
+    model_names = ["DecisionTree", "RandomForest", "LogisticRegression", "KNN", "SVM"]
 
-    # Train selected model (cached)
-    with st.spinner("Training selected model..."):
+    with st.spinner("Training models (cached on first use)..."):
+        model_pipes = {}
         try:
-            model_pipe = build_pipeline(model_choice if model_choice != "RandomForest" else "RandomForest")
+            for name in model_names:
+                model_pipes[name] = build_pipeline(name)
         except Exception as e:
             st.error("Training error: " + str(e))
             st.stop()
@@ -498,35 +607,71 @@ if page == "Predictor":
         na = st.number_input("Sodium (Na)", format="%.6f", value=float(df_full['Na'].median()))
         k = st.number_input("Potassium (K)", format="%.6f", value=float(df_full['K'].median()))
 
-    if st.button("Predict (single)"):
+    if st.button("Predict"):
         input_df = pd.DataFrame([[age, sex, bpv, chol, na, k]], columns=['Age','Sex','BP','Cholesterol','Na','K'])
+        model_results = []
+
         try:
-            pred = model_pipe.predict(input_df)[0]
-            proba = None
-            try:
-                proba = model_pipe.predict_proba(input_df)[0]
-            except Exception:
-                proba = None
-            if proba is not None:
-                sorted_idx = np.argsort(proba)[::-1]
-                top = sorted_idx[0]
-                top_label = model_pipe.classes_[int(top)]
-                top_conf = proba[int(top)]*100.0
-                st.success(f"Predicted Drug: {top_label} ({top_conf:.2f}% confidence) — {model_choice}")
-                st.write("Top 3:")
-                for i in range(min(3,len(sorted_idx))):
-                    idx = int(sorted_idx[i])
-                    st.write(f"{i+1}. {model_pipe.classes_[idx]} — {proba[idx]*100.0:.2f}%")
+            for name, pipe in model_pipes.items():
+                try:
+                    probs = pipe.predict_proba(input_df)[0]
+                    idx = int(np.argmax(probs))
+                    label = pipe.classes_[idx]
+                    conf = probs[idx] * 100.0
+                    model_results.append({
+                        "Model": name,
+                        "Predicted Drug": label,
+                        "Confidence (%)": conf
+                    })
+                except Exception as e:
+                    st.warning(f"Prediction error for {name}: {e}")
+
+            if not model_results:
+                st.error("No model could produce a prediction.")
             else:
-                st.success(f"Predicted Drug: {pred} — (model doesn't provide probabilities)")
-            st.info(f"Features: Age {age}, Sex {sex}, BP {bpv}, Cholesterol {chol}, Na {na}, K {k}")
-            # Show drug details if available
-            if pred in drug_details:
-                dd = drug_details[pred]
-                st.markdown("---")
-                st.markdown(f"### About {pred}")
-                st.write(dd['use'])
-                st.write("Dosage:", dd['dosage'])
+                # Sort by confidence descending
+                model_results_sorted = sorted(model_results, key=lambda x: x["Confidence (%)"], reverse=True)
+
+                # Top 3 models (as requested)
+                st.markdown("### 🏆 Top 3 model predictions")
+                for rank, res in enumerate(model_results_sorted[:3], start=1):
+                    st.write(
+                        f"{rank}. **{res['Model']}** → {res['Predicted Drug']} "
+                        f"(**{res['Confidence (%)']:.2f}%** confidence)"
+                    )
+
+                # Primary model = DecisionTree (to match chatbot)
+                dt_primary = next((r for r in model_results_sorted if r["Model"] == "DecisionTree"), None)
+                if dt_primary is not None:
+                    st.markdown("---")
+                    st.markdown("### ⭐ Primary model (DecisionTree) — same as Chatbot")
+                    st.success(
+                        f"DecisionTree predicts **{dt_primary['Predicted Drug']} "
+                        f"({dt_primary['Confidence (%)']:.2f}% confidence)**"
+                    )
+
+                    pred_label = dt_primary["Predicted Drug"]
+                else:
+                    # Fallback: use best model overall
+                    best = model_results_sorted[0]
+                    st.markdown("---")
+                    st.markdown("### ⭐ Best available model")
+                    st.success(
+                        f"{best['Model']} predicts **{best['Predicted Drug']} "
+                        f"({best['Confidence (%)']:.2f}% confidence)**"
+                    )
+                    pred_label = best["Predicted Drug"]
+
+                st.info(f"Features: Age {age}, Sex {sex}, BP {bpv}, Cholesterol {chol}, Na {na}, K {k}")
+
+                # Show drug details if available (based on primary DecisionTree / best)
+                if pred_label in drug_details:
+                    dd = drug_details[pred_label]
+                    st.markdown("---")
+                    st.markdown(f"### About {pred_label}")
+                    st.write(dd['use'])
+                    st.write("Dosage:", dd['dosage'])
+
         except Exception as e:
             st.error("Prediction error: " + str(e))
 
@@ -602,8 +747,8 @@ if page == "About":
     st.subheader("ℹ️ About Smart Drug Shield")
     st.markdown("""
 **Smart Drug Shield** is an educational demonstration app that trains classification models on a small clinical dataset and provides:
-- A **Chatbot** that can parse patient details from free text and predict a drug (RandomForest).
-- A **Predictor** page for interactive single-patient predictions using different models.
+- A **Chatbot** that interactively asks for Age, Sex, BP (LOW/HIGH/NORMAL), Cholesterol (HIGH/NORMAL) and predicts a drug using a **DecisionTree** model.
+- A **Predictor** page that compares multiple models and shows the **top 3 models** with their prediction and confidence. The primary model is DecisionTree (same as chatbot).
 - A **Drug Information** tab containing drug uses, mechanism, side effects, food advice, interactions and hospital risk.
 
 **Important:** This is a demo for learning only — *not* a clinical decision tool.
